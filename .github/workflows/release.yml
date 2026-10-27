@@ -1,66 +1,54 @@
-name: Build and release
+name: GitHub Release
 
 on:
+  # Triggers the workflow on pushing a tag only
   push:
-    branches: [main]
+    tags: "*"
+    branches:
+      - "!*"
+
+  # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 
-permissions:
-  contents: write
-
-concurrency:
-  group: rolling-release
-  cancel-in-progress: true
-
 jobs:
-  release:
-    # This runner must be trusted and have access to its own Starsector installation.
-    runs-on: [self-hosted, linux, starsector]
-    env:
-      STARSECTOR_CORE: ${{ vars.STARSECTOR_CORE }}
-      GH_TOKEN: ${{ github.token }}
+  build:
+    # The type of runner that the job will run on
+    runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - name: Build and verify mod
-        shell: bash
+      # Checks-out repository under $GITHUB_WORKSPACE, so your job can access it
+      # GitHub Actions by default doesn't check out tags, so make sure those are included
+      - name: Checkout
+        uses: actions/checkout@v3
+        
+      - name: Fetch Tags
+        run: git fetch --prune --unshallow --tags
+
+        # Tags with unstable, dev, qa in them will be marked as prerelease.
+      - name: Set Variables
         run: |
-          set -euo pipefail
-          : "${STARSECTOR_CORE:?Set the STARSECTOR_CORE repository variable to the runner core directory}"
-          test -d "$STARSECTOR_CORE"
-          bash ./gradlew clean build -PcorePath="$STARSECTOR_CORE"
-      - name: Publish rolling prerelease
-        shell: bash
-        run: |
-          set -euo pipefail
-          # A delayed manual run or older build must not replace a newer commit.
-          git fetch origin main
-          if [ "$(git rev-parse FETCH_HEAD)" != "$GITHUB_SHA" ]; then
-            echo 'The default branch has moved; skip this stale build.'
-            exit 0
-          fi
-          shopt -s nullglob
-          archives=(build/distributions/*.zip)
-          if [ "${#archives[@]}" -ne 1 ]; then
-            echo 'Expected exactly one mod ZIP.' >&2
-            exit 1
-          fi
-          tag=dev-latest
-          git tag -f "$tag" "$GITHUB_SHA"
-          git push --force origin "refs/tags/$tag"
-          if ! gh release view "$tag" >/dev/null 2>&1; then
-            gh release create "$tag" --prerelease --title 'Latest development build' \
-              --notes "Built from commit $GITHUB_SHA."
+          echo "VERSION=$(git describe --tags)" >> $GITHUB_ENV
+          git log --format=%B -n 1 $(git log -1 --pretty=format:"%h") | cat - > changes.txt
+          if [[ "$(git describe --tags)" =~ .*"dev"|"qa"|"unstable".* ]]; then
+            echo "IS_PRERELEASE=true" >> $GITHUB_ENV;
           else
-            gh release edit "$tag" --prerelease --title 'Latest development build' \
-              --notes "Built from commit $GITHUB_SHA."
+            echo "IS_PRERELEASE=false" >> $GITHUB_ENV;
           fi
-          gh release upload "$tag" "${archives[0]}" --clobber
-          # Remove ZIPs from previous mod versions only after the new upload succeeds.
-          current=$(basename "${archives[0]}")
-          while IFS= read -r name; do
-            if [[ "$name" == *.zip && "$name" != "$current" ]]; then
-              gh release delete-asset "$tag" "$name" --yes
-            fi
-          done < <(gh release view "$tag" --json assets --jq '.assets[].name')
+
+      - name: Create Mod Zipfile
+        run: |
+          cd ./.github/workflows/
+          chmod +x ./runner.sh
+          ./runner.sh
+          
+      - name: Publish Release on GitHub
+        uses: "ncipollo/release-action@v1.12.0"
+        with:
+          allowUpdates: true
+          name: ${{ env.VERSION }}
+          tag: ${{ env.VERSION }}
+          bodyFile: changes.txt
+          draft: false
+          prerelease: '${{ env.IS_PRERELEASE }}'
+          token: ${{ secrets.GITHUB_TOKEN }}
+          artifacts: ".github/workflows/artifacts/*"
