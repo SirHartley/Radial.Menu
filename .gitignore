@@ -1,6 +1,5 @@
 .gradle/
 build/
-jars/*.jar
 .pi/
 image.webp
 *:Zone.Identifier
