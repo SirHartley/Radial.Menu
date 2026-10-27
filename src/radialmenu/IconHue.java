@@ -1,0 +1,31 @@
+package radialmenu;
+
+import java.awt.Color;
+import java.awt.image.BufferedImage;
+
+/** Circular mean of the visible, moderately saturated pixels in an ability icon. */
+final class IconHue {
+    private IconHue() { }
+
+    static Float average(BufferedImage image) {
+        double x = 0, y = 0;
+        int count = 0;
+        float[] hsb = new float[3];
+        for (int row = 0; row < image.getHeight(); row++) {
+            for (int column = 0; column < image.getWidth(); column++) {
+                int pixel = image.getRGB(column, row);
+                if ((pixel >>> 24) == 0) continue;
+                Color.RGBtoHSB((pixel >> 16) & 255, (pixel >> 8) & 255, pixel & 255, hsb);
+                if (hsb[1] <= 0.3f || hsb[1] >= 0.9f) continue;
+                double angle = hsb[0] * Math.PI * 2;
+                x += Math.cos(angle);
+                y += Math.sin(angle);
+                count++;
+            }
+        }
+        // Opposing hues have no defined mean direction.
+        if (count == 0 || Math.hypot(x, y) < count * 1e-6) return null;
+        double hue = Math.atan2(y, x) / (Math.PI * 2);
+        return (float) (hue < 0 ? hue + 1 : hue);
+    }
+}

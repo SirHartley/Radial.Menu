@@ -1,0 +1,9 @@
+{
+  "abilities": [
+    "scavenge",
+    "sustained_burn",
+    "emergency_burn",
+    "transponder",
+    "go_dark"
+  ]
+}

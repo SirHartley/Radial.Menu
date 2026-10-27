@@ -1,0 +1,10 @@
+{
+  "id": "radial_menu",
+  "name": "Campaign Radial Menu",
+  "author": "Local",
+  "version": "0.1.0",
+  "description": "Hold B or Ctrl in campaign for a configurable radial ability menu. Only abilities owned by the player's fleet are shown. Release over a sector to use the normal ability button.",
+  "gameVersion": "0.98a",
+  "jars": ["jars/RadialMenu.jar"],
+  "modPlugin": "radialmenu.RadialMenuModPlugin"
+}
