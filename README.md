@@ -1,6 +1,5 @@
 # Campaign Radial Menu
 
-A contextual campaign radial menu for **Starsector 0.98a**. No library mods are required.
 
 ## Controls
 
