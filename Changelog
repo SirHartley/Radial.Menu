@@ -10,5 +10,6 @@ None
 --------------------------- Changelog -----------------------------
 
 1.0.a - UNRELEASED
-Added - Campaign radial menu: hold B or either Ctrl key on the campaign map to open a wheel of your fleet's abilities at the mouse, move onto one and release the key to use it. By default it offers Scavenge, Sustained Burn, Emergency Burn, Transponder and Go Dark, clockwise from the top, and only those your fleet has. Abilities that cannot be used right now are greyed out and active ones pulse. Release in the center or outside the ring, or press Escape, to cancel
+Added - Campaign radial menu: hold a hotkey (B or either Ctrl key by default) on the campaign map to open a wheel of your fleet's abilities at the mouse, move onto one and release the key to use it. By default it offers Scavenge, Sustained Burn, Emergency Burn, Transponder and Go Dark, clockwise from the top, and only those your fleet has. Abilities that cannot be used right now are greyed out and active ones pulse. Release in the center or outside the ring, or press Escape, to cancel
+Note - Requires LunaLib. Change or clear the hotkeys under Hotkeys in LunaLib's mod settings
 Note - Edit data/config/radial_menu.json to choose the abilities and their order, including abilities from other mods, then restart the game

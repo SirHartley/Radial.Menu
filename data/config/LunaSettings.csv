@@ -1,0 +1,5 @@
+"fieldID","fieldName","fieldType","defaultValue","secondaryValue","fieldDescription","minValue","maxValue","tab"
+"radial_menu_header_hotkeys","","Header","Hotkeys","","","","",""
+"radial_menu_hotkey","Hotkey","Keycode","48","","Hold this key on the campaign map to open the radial menu at the mouse. Move onto an ability and release the key to use it. To clear a key, click it and press Escape. With all three hotkeys cleared, the menu cannot open. Takes effect when you save. Default: B.","","",""
+"radial_menu_second_hotkey","Second hotkey","Keycode","29","","Another key that opens the radial menu, the same way as Hotkey. Default: L-Ctrl.","","",""
+"radial_menu_third_hotkey","Third hotkey","Keycode","157","","A third key that opens the radial menu, the same way as Hotkey. Default: R-Ctrl.","","",""
