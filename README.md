@@ -49,7 +49,7 @@ Configuration is read when Starsector starts. Edit this source folder's file bef
 
 ## Installation
 
-Download the ZIP from the [latest development release](../../releases/tag/dev-latest), or build it using [BUILDING.md](BUILDING.md). Extract it into Starsector's `mods` directory and enable **Campaign Radial Menu** in the launcher.
+Extract the mod into Starsector's `mods` directory and enable **Campaign Radial Menu** in the launcher.
 
 This folder was repurposed from Voidborne Ascendancy. Its skills, skill data, art, migration plugin, and PatchLib patch have been removed. This is a different mod ID; it does **not** replace Voidborne Ascendancy for saves that require that mod. Keep the original mod installed separately for those saves.
 
@@ -57,7 +57,7 @@ The radial menu's listener is transient and is registered on every new game or l
 
 ## Verification
 
-`bash ./gradlew clean build` compiles against the configured game libraries, runs the main-method regression tests, and creates the installable archive. Tests cover configuration parsing, ownership filtering, custom ability IDs, order, zero/one/multiple sectors, cancellation, availability rechecks, native button dispatch, and radial gradients and feathered geometry at multiple UI scales and sector counts. Native toggle/confirmation behavior is represented by an external-API fake; rendering and actual gameplay effects still require an in-game smoke test.
+The main-method regression tests under `test/` cover configuration parsing, ownership filtering, custom ability IDs, order, zero/one/multiple sectors, cancellation, availability rechecks, native button dispatch, and radial gradients and feathered geometry at multiple UI scales and sector counts. Native toggle/confirmation behavior is represented by an external-API fake; rendering and actual gameplay effects still require an in-game smoke test.
 
 In-game smoke test:
 
