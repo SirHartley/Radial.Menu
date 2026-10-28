@@ -57,8 +57,6 @@ The radial menu's listener is transient and is registered on every new game or l
 
 ## Verification
 
-The main-method regression tests under `test/` cover configuration parsing, ownership filtering, custom ability IDs, order, zero/one/multiple sectors, cancellation, availability rechecks, native button dispatch, and radial gradients and feathered geometry at multiple UI scales and sector counts. Native toggle/confirmation behavior is represented by an external-API fake; rendering and actual gameplay effects still require an in-game smoke test.
-
 In-game smoke test:
 
 - Hold B or Ctrl inside an unscavenged debris field. Select Scavenge and release. Confirm the normal salvage dialog opens once.
