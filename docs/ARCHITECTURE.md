@@ -14,6 +14,7 @@ Technical routing for the current implementation. Code paths below are relative 
 | Change / symptom | Route |
 |---|---|
 | Which abilities get a sector, and their order | `data/config/radial_menu.json -> RadialMenuConfig.fromJSON -> RadialMenuConfig.ownedAbilities -> CampaignRadialMenu.prepareWheel` |
+| Hotkeys | `data/config/LunaSettings.csv -> config/PlayerSettings.reload -> CampaignRadialMenu.openingKeyHeld` (`Setting.HOTKEYS`); [Settings](#settings) |
 | Opening keys, Escape, cancel, release target | `CampaignRadialMenu.processCampaignInputPreCore -> RadialSelection.update -> RadialSelection.hoveredSector` |
 | What a selection does | `CampaignRadialMenu.processCampaignInputPreCore -> CampaignRadialMenu.allowed -> RadialAbility.press -> AbilityPlugin.pressButton` |
 | Greyed-out or pulsing sector | `RadialAbility.isAvailable` (`AbilityPlugin.isUsable`), `RadialAbility.isActive` (`AbilityPlugin.isActiveOrInProgress`) |
@@ -27,15 +28,27 @@ Technical routing for the current implementation. Code paths below are relative 
 
 | Registry / hook | Owners |
 |---|---|
-| `mod_info.json` | Mod id `radial_menu`, `modPlugin` `radialmenu.RadialMenuModPlugin`, jar `jars/radialmenu.jar` (packaged from `jars/release/radialmenu.jar`) |
+| `mod_info.json` | Mod id `radial_menu` (`RadialMenuModPlugin.MOD_ID`), LunaLib dependency, `modPlugin` `radialmenu.RadialMenuModPlugin`, jar `jars/radialmenu.jar` (packaged from `jars/release/radialmenu.jar`) |
 | `data/config/version/version_files.csv` | Registers `radialmenu.version` for Version Checker; [RELEASE.md](RELEASE.md#version-checker) |
-| `RadialMenuModPlugin.onApplicationLoad()` | Reads `RadialMenuConfig.PATH` once through `loadJSON(RadialMenuConfig.PATH, "radial_menu")`; any config error is rethrown as `IllegalStateException` and stops the game start |
-| `RadialMenuModPlugin.onGameLoad()` | `removeListenerOfClass(CampaignRadialMenu.class)`, then `addListener(new CampaignRadialMenu(config), true)` (transient) |
+| `RadialMenuModPlugin.onApplicationLoad()` | Reads `RadialMenuConfig.PATH` once through `loadJSON(RadialMenuConfig.PATH, "radial_menu")`; any config error is rethrown as `IllegalStateException` and stops the game start. Then `PlayerSettings.install()` |
+| `RadialMenuModPlugin.onGameLoad()` | `PlayerSettings.reload()`, `removeListenerOfClass(CampaignRadialMenu.class)`, then `addListener(new CampaignRadialMenu(config), true)` (transient) |
 | `data/config/radial_menu.json` | Ordered `abilities` array of ability ids; `RadialMenuConfig.fromJSON` |
+| `data/config/LunaSettings.csv` | LunaLib settings rows (one General tab, a Hotkeys header and three `Keycode` rows); ids, types and defaults mirror `config/Setting` |
 
-Load order: `onApplicationLoad -> RadialMenuConfig.fromJSON` -> `onGameLoad -> removeListenerOfClass -> addListener`.
+Load order: `onApplicationLoad -> RadialMenuConfig.fromJSON -> PlayerSettings.install` -> `onGameLoad -> PlayerSettings.reload -> removeListenerOfClass -> addListener`.
 
 One gesture: opening key down `-> CampaignRadialMenu.prepareWheel -> RadialSelection.update` (opens at the clamped mouse position) `-> renderInUICoordsAboveUIBelowTooltips` each frame `->` key up `-> RadialSelection.hoveredSector -> allowed() -> RadialAbility.press`.
+
+### Settings
+
+`config/Setting` owns ids and defaults. `data/config/LunaSettings.csv` supplies the rows and owns the setting names and help text (`fieldName`, `fieldDescription`); it must match `Setting` on ids, types and defaults. `config/PlayerSettings` installs a `LunaSettingsListener` on application start, reloads on every LunaLib save and on game load, and caches sanitized values. Runtime callers read `PlayerSettings.get`, never LunaLib each frame.
+
+- A hotkey is a LunaLib `Keycode`: an LWJGL key code, `0` when the player clears it with Escape. `Setting.sanitize` maps a missing or out-of-range value to the default.
+- `PlayerSettings.reload` reads through `LunaSettings.getInt`, which loads LunaLib's settings on first use.
+- LunaLib does not call listeners for settings saved during new-game setup (`if (!newGame) LunaSettings.reportSettingsChanged(mod)`), so `onGameLoad` reloads.
+- LunaLib passes `fieldName` and `fieldDescription` to `addPara` as format strings; write a literal percent sign as `%%`.
+
+Sources (LunaLib 2.0.1, `libs/Lazylib_lunalib.zip`): `LunaSettings.kt` `getInt`, `LunaSettingsLoader.kt` (`Keycode` defaults), `LunaUIKeybindButton.kt` (Escape clears to `0`), `LunaSettingsUIModsPanel.kt` line 614, `LunaSettingsUISettingsPanel.kt` lines 330 and 341.
 
 ### Build and release tools
 
@@ -45,6 +58,7 @@ Tools live in `radialmenu/tools/`, run as standalone programs with JDK 17 from t
 |---|---|
 | `tools/ReleaseBuild.java` | `build <starsector-core>`: compiles `jars/src` into `jars/release/radialmenu.jar`; `package [tag]`: writes the ZIP, notes and stamped version file to `out/release/`. Reads `libs/` and the game jars, never writes to the game. [RELEASE.md](RELEASE.md) |
 | `tools/ReleaseBuildChecks.java` | Headless checks of changelog parsing, version stamping and the package file filter |
+| `tools/PlayerSettingsChecks.java` | Checks `data/config/LunaSettings.csv` against `config/Setting`: columns, `radial_menu_` prefix, unique ids, a `Setting` for every row, `Keycode` type, defaults, help text, escaped `%` and keycode sanitizing. Run from the repository root after the compile gate: `java -cp <classes>:<compile jars> radialmenu.tools.PlayerSettingsChecks` |
 | `.github/workflows/release.yml` | Runs the checks and a preview package on every push and PR; publishes on a version tag |
 
 ## Data identity
@@ -55,11 +69,17 @@ Tools live in `radialmenu/tools/`, run as standalone programs with JDK 17 from t
 | `radialmenu` (Java package) | none |
 | Ability ids in `radial_menu.json` (`scavenge`, `sustained_burn`, `emergency_burn`, `transponder`, `go_dark` by default) | `AbilityPlugin.getSpec().getName()` |
 
-The mod id is passed as a literal to `loadJSON` in `RadialMenuModPlugin`; change both together.
+`RadialMenuModPlugin.MOD_ID` is the mod id for `loadJSON` and LunaLib; it must match `mod_info.json`. Setting ids carry the `radial_menu_` prefix.
+
+| Setting id | LunaLib name |
+|---|---|
+| `radial_menu_hotkey` | Hotkey |
+| `radial_menu_second_hotkey` | Second hotkey |
+| `radial_menu_third_hotkey` | Third hotkey |
 
 ## Source owners
 
-Runtime classes are in `radialmenu/`, and all but `RadialMenuModPlugin` and `CampaignRadialMenu` are package-private.
+Runtime classes are in `radialmenu/` and `radialmenu/config/`. In `radialmenu/` all but `RadialMenuModPlugin` and `CampaignRadialMenu` are package-private; `config/` is public so tools can read it.
 
 | File | Owner / connection |
 |---|---|
@@ -72,6 +92,8 @@ Runtime classes are in `radialmenu/`, and all but `RadialMenuModPlugin` and `Cam
 | `radialmenu/SectorText.java` | Usable label width inside a sector and word wrapping |
 | `radialmenu/IconHue.java` | Circular mean hue of an icon's visible, saturated pixels |
 | `radialmenu/IconFade.java` | Static mesh fading an icon's edges |
+| `radialmenu/config/Setting.java` | Setting ids, defaults and sanitizing; `HOTKEYS` lists the keys that open the wheel |
+| `radialmenu/config/PlayerSettings.java` | LunaLib listener and the cached values |
 | `radialmenu/IconBackdrop.java` | 2x bicubic copy of an icon with radial opacity falloff, and its GL texture upload |
 
 ## Contracts
@@ -79,7 +101,7 @@ Runtime classes are in `radialmenu/`, and all but `RadialMenuModPlugin` and `Cam
 ### Engine and input
 
 - `CampaignRadialMenu` is the only campaign listener. It is registered transient on every game load, so it writes nothing into saves; `removeListenerOfClass` first keeps one instance per session. `addListener(Object, boolean isTransient)` in `ListenerManagerAPI`.
-- Opening keys (`KEY_B`, `KEY_LCONTROL`, `KEY_RCONTROL`) are read with `Keyboard.isKeyDown`, not from input events. Escape is read from unconsumed key-down events and consumed.
+- Hotkeys (`Setting.HOTKEYS`, by default `KEY_B`, `KEY_LCONTROL`, `KEY_RCONTROL`) are read with `Keyboard.isKeyDown` in `openingKeyHeld`, not from input events. A cleared key (`KEY_NONE`) is skipped; with all three cleared the wheel never opens. Escape is read from unconsumed key-down events and consumed.
 - While the wheel is open, `processCampaignInputPreCore` consumes every unconsumed mouse and keyboard event and calls `setDisallowPlayerInteractionsForOneFrame`; `processCampaignInputPreFleetControl` does the same. Listener input priority is 100.
 - `allowed()` requires `GameState.CAMPAIGN`, an active game window, a player fleet, and no dialog, menu, core tab or hidden UI. The render callback cancels an open wheel when it stops being allowed.
 - The wheel does not pause campaign time.
@@ -105,7 +127,7 @@ Runtime classes are in `radialmenu/`, and all but `RadialMenuModPlugin` and `Cam
 
 ## Checks
 
-`ReleaseBuildChecks` covers the release tooling only. There are no automated checks of the mod itself; rendering, input and ability behaviour need the in-game smoke test in [README.md](../README.md#verification).
+`ReleaseBuildChecks` covers the release tooling and `PlayerSettingsChecks` the settings CSV. There are no automated checks of the wheel itself; rendering, input and ability behaviour need the in-game smoke test in [README.md](../README.md#verification).
 
 ## Dead or dormant
 

@@ -25,6 +25,8 @@ import com.fs.starfarer.api.util.Misc;
 import org.lwjgl.input.Keyboard;
 import org.lwjgl.opengl.Display;
 import org.lwjgl.opengl.GL11;
+import radialmenu.config.PlayerSettings;
+import radialmenu.config.Setting;
 
 /** Session-only campaign overlay; delegates ability behavior to the vanilla buttons. */
 public final class CampaignRadialMenu implements CampaignInputListener, CampaignUIRenderingListener {
@@ -125,9 +127,7 @@ public final class CampaignRadialMenu implements CampaignInputListener, Campaign
                 event.consume();
             }
         }
-        boolean openingKeyHeld = Keyboard.isKeyDown(Keyboard.KEY_LCONTROL)
-                || Keyboard.isKeyDown(Keyboard.KEY_RCONTROL)
-                || Keyboard.isKeyDown(Keyboard.KEY_B);
+        boolean openingKeyHeld = openingKeyHeld();
         boolean usableUI = allowed();
         if (usableUI && openingKeyHeld && !selection.isHeld()) prepareWheel();
         int selected = selection.update(openingKeyHeld, usableUI, cancel,
@@ -145,6 +145,14 @@ public final class CampaignRadialMenu implements CampaignInputListener, Campaign
             RadialAbility action = actions[selected];
             action.press(ability(action));
         }
+    }
+
+    private static boolean openingKeyHeld() {
+        for (Setting hotkey : Setting.HOTKEYS) {
+            int key = PlayerSettings.get(hotkey);
+            if (key != Keyboard.KEY_NONE && Keyboard.isKeyDown(key)) return true;
+        }
+        return false;
     }
 
     @Override

@@ -51,7 +51,7 @@ public final class ReleaseBuild {
     static final String API = "starfarer.api.jar";
     static final Map<String, Set<String>> ARCHIVES = new TreeMap<>(Map.of(
             "GraphicsLib.zip", Set.of("Graphics.jar"),
-            "Lazylib_lunalib.zip", Set.of("LazyLib.jar", "LunaLib.jar"),
+            "Lazylib_lunalib.zip", Set.of("LazyLib.jar", "LunaLib.jar", "Kotlin-Runtime.jar"),
             "MagicLib.zip", Set.of("MagicLib.jar"),
             "PatchLib.zip", Set.of("PatchLibAPI.jar")));
     static final List<String> GAME_JARS = List.of("lwjgl.jar", "lwjgl_util.jar", "json.jar", "log4j-1.2.9.jar");
@@ -59,7 +59,8 @@ public final class ReleaseBuild {
     static final Set<String> ROOT_FILES = Set.of("mod_info.json", VERSION_FILE, "Changelog",
             "LICENSE", "LICENSE.txt", "LICENSE.md", "NOTICE", "CREDITS", "CREDITS.txt", "CREDITS.md");
     static final List<String> REQUIRED = List.of("Changelog", "mod_info.json", VERSION_FILE, "LICENSE", "NOTICE",
-            "data/config/radial_menu.json", "data/config/version/version_files.csv");
+            "data/config/radial_menu.json", "data/config/LunaSettings.csv",
+            "data/config/version/version_files.csv");
     static final Set<String> NOTICES = Set.of();
     static final Map<String, Set<String>> ASSETS = Map.of(
             "data", Set.of("csv", "json", "shader", "ship", "wpn", "proj", "system", "variant", "skin"),

@@ -28,6 +28,7 @@ After reading this file, use the task to choose the next document. Read the rele
 | Locate code or data, trace a feature, change an owner or lifecycle | [ARCHITECTURE.md](docs/ARCHITECTURE.md) before tracing code. |
 | Change the wheel's drawing, input, labels, icons or geometry | [ARCHITECTURE.md](docs/ARCHITECTURE.md) source owners and contracts. This is UI work; see [Claude model assignments](#claude-model-assignments). |
 | Write or revise any player-facing text, including Java strings, `README.md`, `mod_info.json`, config error messages and changelog notes | The `house-style` skill's player-text reference. Changelog notes also follow [CHANGELOG.md](docs/CHANGELOG.md). This project has no text guide of its own. |
+| Add or change a LunaLib setting, including hotkeys | [ARCHITECTURE.md](docs/ARCHITECTURE.md#settings) settings contract; run `PlayerSettingsChecks`. Setting names and help text also take the player-facing text route. |
 | Patch, hook or redirect vanilla code | The `patchlib` skill, then the target class through `starsector-knowledge`. |
 | Change the build, rebuild the release jar, or prepare a release | [RELEASE.md](docs/RELEASE.md) for version numbers, release contents, jar freshness and publishing. |
 | Edit a guide or add documentation | [Documentation upkeep](#documentation-upkeep), the owning guide and its inbound links. Documentation-only changes do not need the build gate. |
@@ -56,6 +57,7 @@ Resolve a technical conflict between documents, comments and code against the ex
 - Every runtime-affecting final branch must pass the full clean Java 17 build described in [Building](#building).
 - Build the exact final remote task-branch revision. Earlier builds, partial builds, IDE analysis, and static checks do not satisfy the gate.
 - Missing compilers or required dependencies are merge blockers. Documentation-only changes do not require a Java build.
+- A change to `data/config/LunaSettings.csv` or `config/Setting` must pass `PlayerSettingsChecks` ([ARCHITECTURE.md](docs/ARCHITECTURE.md#build-and-release-tools)).
 - Report static checks separately from in-game testing. A clean compile does not verify drawing, input or feel; say plainly what was not tested in game. The in-game smoke test is in [README.md](README.md#verification).
 - Open a pull request and merge it when the work is complete. Do not leave finished work on an unmerged branch.
 - Use the connected GitHub app to create, inspect, and merge pull requests. Use `gh` only if the app is unavailable. A broken `gh` login is not a blocker when the app works.
@@ -234,14 +236,14 @@ Required compile dependencies:
 
 - `libs/starfarer.api.jar`;
 - `Graphics.jar` from `libs/GraphicsLib.zip`;
-- `LazyLib.jar` and `LunaLib.jar` from `libs/Lazylib_lunalib.zip`;
+- `LazyLib.jar`, `LunaLib.jar` and `Kotlin-Runtime.jar` from `libs/Lazylib_lunalib.zip` (the Kotlin runtime resolves LunaLib's Kotlin metadata, which otherwise prints compiler warnings);
 - `MagicLib.jar` from `libs/MagicLib.zip`;
 - `PatchLibAPI.jar` from `libs/PatchLib.zip`;
 - `lwjgl.jar`, `lwjgl_util.jar`, `json.jar` and `log4j-1.2.9.jar` from the target game's `starsector-core` directory (the `starsector` directory in the Linux build).
 
 Use the game's bundled libraries for compilation. Do not substitute Maven versions or put a second JSON jar on the classpath: Starsector's `JSONException` is checked, while newer JSON versions make it unchecked and can hide build errors.
 
-These dependencies provide `org.lwjgl.input`, `org.lwjgl.opengl`, `org.json`, and `Global.getLogger()`. The mod does not use the library mods yet; they are on the classpath so a change that starts using one compiles under the same gate. Add the library to `mod_info.json` `dependencies` in the same commit. `starfarer_obf.jar` is not required; the source compiles against the API jar alone.
+These dependencies provide `org.lwjgl.input`, `org.lwjgl.opengl`, `org.json`, and `Global.getLogger()`. The mod uses LunaLib for its settings. The other library mods are on the classpath so a change that starts using one compiles under the same gate; add that library to `mod_info.json` `dependencies` in the same commit. `starfarer_obf.jar` is not required; the source compiles against the API jar alone.
 
 `ReleaseBuild build` in [RELEASE.md](docs/RELEASE.md#build) compiles the same sources against the same jars, but it also replaces the release jar, so use it only for a requested rebuild.
 

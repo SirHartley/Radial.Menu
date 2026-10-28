@@ -3,11 +3,11 @@
 
 ## Controls
 
-1. Hold **B** or **left or right Ctrl** on the campaign map to open the wheel at the mouse.
+1. Hold a hotkey on the campaign map to open the wheel at the mouse. The hotkeys are **B**, **left Ctrl** and **right Ctrl** by default; change or clear them under **Hotkeys** in LunaLib's mod settings.
 2. Move the mouse out of the center and onto the desired sector.
 3. Release the opening key to activate the highlighted action.
 
-Release in the center, outside the ring, or without moving to cancel. **Escape** also cancels; release all opening keys before opening again. If multiple opening keys are held (B and/or either Ctrl), release all of them to select.
+Release in the center, outside the ring, or without moving to cancel. **Escape** also cancels; release all opening keys before opening again. If several hotkeys are held, release all of them to select.
 
 The wheel is kept inside the screen and uses the game's virtual UI coordinates, fonts, and player UI colors. Campaign mouse and keyboard input is captured while the wheel is open. The wheel does not pause campaign time.
 
@@ -49,7 +49,7 @@ Configuration is read when Starsector starts. Edit this source folder's file bef
 
 ## Installation
 
-Download the latest `Radial.Menu-<version>.zip` from [Releases](https://github.com/SirHartley/Radial.Menu/releases), extract it into Starsector's `mods` directory and enable **Campaign Radial Menu** in the launcher.
+Download the latest `Radial.Menu-<version>.zip` from [Releases](https://github.com/SirHartley/Radial.Menu/releases), extract it into Starsector's `mods` directory and enable **Campaign Radial Menu** in the launcher. It requires [LunaLib](https://github.com/Lukas22041/LunaLib), which in turn requires LazyLib.
 
 This folder was repurposed from Voidborne Ascendancy. Its skills, skill data, art, migration plugin, and PatchLib patch have been removed. This is a different mod ID; it does **not** replace Voidborne Ascendancy for saves that require that mod. Keep the original mod installed separately for those saves.
 
@@ -59,12 +59,13 @@ The radial menu's listener is transient and is registered on every new game or l
 
 In-game smoke test:
 
-- Hold B or Ctrl inside an unscavenged debris field. Select Scavenge and release. Confirm the normal salvage dialog opens once.
+- Hold a hotkey inside an unscavenged debris field. Select Scavenge and release. Confirm the normal salvage dialog opens once.
 - Repeat outside a field and after scavenging it. Confirm Scavenge is greyed out while the other owned abilities retain their positions.
 - Change the configured order and add an ability the player does not own. Restart and confirm the order is respected and the unowned entry is omitted. Try an empty list and a single owned ability.
 - Learn or lose a configured ability between gestures. Confirm the next press updates the wheel, while an already-open wheel keeps its targets stable and cannot activate a removed ability.
 - Toggle Sustained Burn, Transponder, and Go Dark on and off. Verify the ability names and icons, wind-up, and normal ability incompatibilities. When turning the transponder on would reveal a hostile identity, verify the native confirmation appears and Cancel leaves it off.
 - Activate Emergency Burn once. Verify the normal fuel cost/effect and a disabled sector during its active/cooldown period. Try without enough fuel.
-- Cancel with the center, outside the ring, and Escape. Test B, both Ctrl keys, combinations of opening keys, and a stationary key tap near a screen edge.
+- Cancel with the center, outside the ring, and Escape. Test every hotkey, combinations of hotkeys, and a stationary key tap near a screen edge.
 - Open Fleet/Intel, pause menus, or a dialog, and switch focus away. Confirm no wheel or unintended activation.
+- In LunaLib's mod settings, change one hotkey and clear another, then save. Confirm the wheel follows the new keys without a restart, after loading a save, and in a new game. Clear all three and confirm the wheel cannot open.
 - Test paused campaign, UI scaling, save/load, and a second campaign in the same process.
