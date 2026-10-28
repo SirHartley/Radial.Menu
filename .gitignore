@@ -1,4 +1,5 @@
-build/
+out/
+jars/radialmenu.jar
 .pi/
 image.webp
 *:Zone.Identifier
