@@ -5,6 +5,7 @@ Technical routing for the current implementation. Code paths below are relative 
 | Reference | Scope |
 |---|---|
 | [CLAUDE.md](../CLAUDE.md) | Workflow, build gate and document upkeep |
+| [RELEASE.md](RELEASE.md) | Version numbers, release jar, package contents, version file and publishing |
 | [CHANGELOG.md](CHANGELOG.md) | Change-note format and upkeep for every implementation task |
 | [README.md](../README.md) | Player-facing controls, default abilities, configuration, installation and the in-game smoke test |
 
@@ -26,7 +27,8 @@ Technical routing for the current implementation. Code paths below are relative 
 
 | Registry / hook | Owners |
 |---|---|
-| `mod_info.json` | Mod id `radial_menu`, `modPlugin` `radialmenu.RadialMenuModPlugin`, jar path |
+| `mod_info.json` | Mod id `radial_menu`, `modPlugin` `radialmenu.RadialMenuModPlugin`, jar `jars/radialmenu.jar` (packaged from `jars/release/radialmenu.jar`) |
+| `data/config/version/version_files.csv` | Registers `radialmenu.version` for Version Checker; [RELEASE.md](RELEASE.md#version-checker) |
 | `RadialMenuModPlugin.onApplicationLoad()` | Reads `RadialMenuConfig.PATH` once through `loadJSON(RadialMenuConfig.PATH, "radial_menu")`; any config error is rethrown as `IllegalStateException` and stops the game start |
 | `RadialMenuModPlugin.onGameLoad()` | `removeListenerOfClass(CampaignRadialMenu.class)`, then `addListener(new CampaignRadialMenu(config), true)` (transient) |
 | `data/config/radial_menu.json` | Ordered `abilities` array of ability ids; `RadialMenuConfig.fromJSON` |
@@ -34,6 +36,16 @@ Technical routing for the current implementation. Code paths below are relative 
 Load order: `onApplicationLoad -> RadialMenuConfig.fromJSON` -> `onGameLoad -> removeListenerOfClass -> addListener`.
 
 One gesture: opening key down `-> CampaignRadialMenu.prepareWheel -> RadialSelection.update` (opens at the clamped mouse position) `-> renderInUICoordsAboveUIBelowTooltips` each frame `->` key up `-> RadialSelection.hoveredSector -> allowed() -> RadialAbility.press`.
+
+### Build and release tools
+
+Tools live in `radialmenu/tools/`, run as standalone programs with JDK 17 from the repository root, and never ship in the release jar.
+
+| Entry point | Use / owners |
+|---|---|
+| `tools/ReleaseBuild.java` | `build <starsector-core>`: compiles `jars/src` into `jars/release/radialmenu.jar`; `package [tag]`: writes the ZIP, notes and stamped version file to `out/release/`. Reads `libs/` and the game jars, never writes to the game. [RELEASE.md](RELEASE.md) |
+| `tools/ReleaseBuildChecks.java` | Headless checks of changelog parsing, version stamping and the package file filter |
+| `.github/workflows/release.yml` | Runs the checks and a preview package on every push and PR; publishes on a version tag |
 
 ## Data identity
 
@@ -47,7 +59,7 @@ The mod id is passed as a literal to `loadJSON` in `RadialMenuModPlugin`; change
 
 ## Source owners
 
-Every class is in `radialmenu/` and all but `RadialMenuModPlugin` and `CampaignRadialMenu` are package-private.
+Runtime classes are in `radialmenu/`, and all but `RadialMenuModPlugin` and `CampaignRadialMenu` are package-private.
 
 | File | Owner / connection |
 |---|---|
@@ -93,7 +105,7 @@ Every class is in `radialmenu/` and all but `RadialMenuModPlugin` and `CampaignR
 
 ## Checks
 
-There are no automated checks. Rendering, input and ability behaviour need the in-game smoke test in [README.md](../README.md#verification).
+`ReleaseBuildChecks` covers the release tooling only. There are no automated checks of the mod itself; rendering, input and ability behaviour need the in-game smoke test in [README.md](../README.md#verification).
 
 ## Dead or dormant
 

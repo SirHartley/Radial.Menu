@@ -1,0 +1,12 @@
+{
+    "masterVersionFile":"https://raw.githubusercontent.com/SirHartley/Radial.Menu/main/radialmenu.version",
+    "modName":"Radial.Menu",
+    "modVersion":
+    {
+        "major":1,
+        "minor":0,
+        "patch":"a"
+    },
+    "directDownloadURL":"https://github.com/SirHartley/Radial.Menu/releases/download/1.0.a/Radial.Menu-1.0.a.zip",
+    "changelogURL":"https://raw.githubusercontent.com/SirHartley/Radial.Menu/refs/heads/main/Changelog",
+}

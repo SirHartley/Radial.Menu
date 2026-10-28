@@ -64,8 +64,9 @@ Do not repeat a change once per file, implementation step or PR.
 
 The newest section holds work for the next release and is marked
 `- UNRELEASED`. Keep adding to it across tasks. Do not invent a new version
-for every commit. Ask which version comes next if it has not been chosen after
-a published release.
+for every commit. See [RELEASE.md](RELEASE.md#versions) for the major/minor/letter
+scheme and ask which version comes next if it has not been chosen after a
+published release.
 
 Every agent implementation task must add or amend its change notes before
 merge. Read-only investigations do not add entries. Check the actual diff:

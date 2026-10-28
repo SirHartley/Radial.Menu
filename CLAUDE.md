@@ -29,6 +29,7 @@ After reading this file, use the task to choose the next document. Read the rele
 | Change the wheel's drawing, input, labels, icons or geometry | [ARCHITECTURE.md](docs/ARCHITECTURE.md) source owners and contracts. This is UI work; see [Claude model assignments](#claude-model-assignments). |
 | Write or revise any player-facing text, including Java strings, `README.md`, `mod_info.json`, config error messages and changelog notes | The `house-style` skill's player-text reference. Changelog notes also follow [CHANGELOG.md](docs/CHANGELOG.md). This project has no text guide of its own. |
 | Patch, hook or redirect vanilla code | The `patchlib` skill, then the target class through `starsector-knowledge`. |
+| Change the build, rebuild the release jar, or prepare a release | [RELEASE.md](docs/RELEASE.md) for version numbers, release contents, jar freshness and publishing. |
 | Edit a guide or add documentation | [Documentation upkeep](#documentation-upkeep), the owning guide and its inbound links. Documentation-only changes do not need the build gate. |
 | Any implementation task | [CHANGELOG.md](docs/CHANGELOG.md): add or amend the task's entries in the current unreleased section before merge. |
 
@@ -43,7 +44,7 @@ Resolve a technical conflict between documents, comments and code against the ex
 - Commit messages are as short as possible: all lowercase, at most 8 words, programmer speak (`fix label wrap on small wheels`). One line only. No body, no conventional-commit prefix, no testing notes, agent or model names, co-author trailers, session metadata, links or trailing full stop.
 - Update the affected documentation in the same commit, following [Documentation upkeep](#documentation-upkeep). Do this without a separate user request.
 - Update `Changelog` in the same commit, using [CHANGELOG.md](docs/CHANGELOG.md). Agents write the change notes; do not leave that work for the user.
-- Rebuild and commit release artifacts, and publish a release, only when the user explicitly asks.
+- Rebuild and commit `jars/release/radialmenu.jar`, and publish a release, only when the user explicitly asks; follow [RELEASE.md](docs/RELEASE.md). Ordinary changes, including runtime Java, do not rebuild the jar. Never replace it with an IDE artifact.
 - Work only in the current task checkout. A live mod installation and every unrelated checkout are read-only unless the user explicitly asks you to change them.
 - Do not deploy or synchronize the mod after merge unless the user explicitly requests it.
 - Until release, cross-version campaign saves are unsupported. Remove obsolete upgrades, saved payloads and migrations instead of retaining compatibility scaffolding. Preserve normal save/load within the current version, transient-state restoration and live runtime safeguards.
@@ -75,6 +76,7 @@ Update documents automatically as part of each relevant change, not by a backgro
 | `AGENTS.md` | Codex discovery | Keep it a short pointer to this file. Do not copy workflow policy into it. |
 | `CLAUDE.md` | Task scope, subagent instructions, tools, commits, PRs, builds, comments, document maintenance | Replace changed policies here and update links. Keep provider-specific instructions explicitly scoped. |
 | `README.md` | Player-facing mod page: controls, default abilities, configuration, installation and the in-game smoke test | Update when controls, defaults, the config format or install steps change. Player-facing text route applies. |
+| `docs/RELEASE.md` | Version numbers, release builds, package contents, the version file and publishing | Keep the builder constants, `.github/workflows/release.yml` and `radialmenu.version` aligned with it. Do not publish tags without a release request. |
 | `Changelog` and `docs/CHANGELOG.md` | Shipped change notes and how agents write them | Add or amend unreleased entries with each implementation task; preserve published entries. Keep formatting compatible with release-note extraction. |
 | `docs/ARCHITECTURE.md` | Technical routing: owners, registrations, data flow, lifecycle and cross-system constraints | Update the affected route or contract; remove obsolete owners. Use exact paths and symbols. No writing advice, release history, or duplicate policy. |
 | `.claude/agents/*.md` | Subagent definitions | Update when the research workflow, sources or `libs/` layout change. |
@@ -207,6 +209,10 @@ This section applies to Claude sessions, not ChatGPT.
 
 Subagents perform research and scoping, not shipped code. The UI assignment takes precedence whenever the player can see the result.
 
+## Version names
+
+Versions use major.minor.letter, starting at `1.0.a`. The release tag sets both packaged version files. See [RELEASE.md](docs/RELEASE.md#versions); do not bump versions or publish tags as part of ordinary task work.
+
 ## Building
 
 ### Required compile gate
@@ -236,6 +242,8 @@ Required compile dependencies:
 Use the game's bundled libraries for compilation. Do not substitute Maven versions or put a second JSON jar on the classpath: Starsector's `JSONException` is checked, while newer JSON versions make it unchecked and can hide build errors.
 
 These dependencies provide `org.lwjgl.input`, `org.lwjgl.opengl`, `org.json`, and `Global.getLogger()`. The mod does not use the library mods yet; they are on the classpath so a change that starts using one compiles under the same gate. Add the library to `mod_info.json` `dependencies` in the same commit. `starfarer_obf.jar` is not required; the source compiles against the API jar alone.
+
+`ReleaseBuild build` in [RELEASE.md](docs/RELEASE.md#build) compiles the same sources against the same jars, but it also replaces the release jar, so use it only for a requested rebuild.
 
 Reference command:
 
