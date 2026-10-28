@@ -34,6 +34,9 @@ public final class CampaignRadialMenu implements CampaignInputListener, Campaign
     private LabelAPI[] actionLabels = new LabelAPI[0];
     private SpriteAPI[] actionIcons = new SpriteAPI[0];
     private final Map<String, Float> iconHues = new HashMap<String, Float>();
+    private final Map<String, BufferedImage> iconBackdrops = new HashMap<String, BufferedImage>();
+    private final Map<String, Integer> backdropTextures = new HashMap<String, Integer>();
+    private String[] actionIconNames = new String[0];
     private Float[] actionHues = new Float[0];
     private FeatheredSector[] geometry = new FeatheredSector[0];
     private FeatheredSector[] liftedGeometry = new FeatheredSector[0];
@@ -50,10 +53,12 @@ public final class CampaignRadialMenu implements CampaignInputListener, Campaign
         selection.setSectors(actions.length);
         actionLabels = new LabelAPI[actions.length];
         actionIcons = new SpriteAPI[actions.length];
+        actionIconNames = new String[actions.length];
         actionHues = new Float[actions.length];
         float radius = (RadialSelection.INNER_RADIUS + RadialSelection.OUTER_RADIUS) / 2;
         for (int i = 0; i < actions.length; i++) {
             String iconName = ability(actions[i]).getSpec().getIconName();
+            actionIconNames[i] = iconName;
             actionIcons[i] = Global.getSettings().getSprite(iconName);
             actionHues[i] = iconHue(iconName);
             actionIcons[i].setSize(36f, 36f);
@@ -84,6 +89,7 @@ public final class CampaignRadialMenu implements CampaignInputListener, Campaign
                 BufferedImage image = ImageIO.read(stream);
                 if (image == null) throw new IOException("Unsupported image format: " + iconName);
                 hue = IconHue.average(image);
+                iconBackdrops.put(iconName, IconBackdrop.create(image));
             } catch (IOException e) {
                 Global.getLogger(CampaignRadialMenu.class).warn("Could not read ability icon " + iconName, e);
             }
@@ -212,6 +218,7 @@ public final class CampaignRadialMenu implements CampaignInputListener, Campaign
                 float x = selection.getX() + (float) Math.cos(angle) * radius;
                 float y = selection.getY() + (float) Math.sin(angle) * radius;
                 SpriteAPI icon = actionIcons[i];
+                drawIconBackdrop(actionIconNames[i], icon, x, y - 10f, available ? 1f : 0.4f);
                 drawFadedIcon(icon, x, y - 10f, available ? 1f : 0.4f);
                 float labelHeight = label.computeTextHeight(label.getText());
                 drawLabel(label, x, y + 12f + labelHeight / 2f);
@@ -261,6 +268,29 @@ public final class CampaignRadialMenu implements CampaignInputListener, Campaign
     }
 
 
+    private void drawIconBackdrop(String name, SpriteAPI icon, float x, float y, float alpha) {
+        Integer texture = backdropTextures.get(name);
+        if (texture == null) {
+            BufferedImage image = iconBackdrops.remove(name);
+            if (image == null) return;
+            texture = IconBackdrop.upload(image);
+            backdropTextures.put(name, texture);
+        }
+        GL11.glEnable(GL11.GL_TEXTURE_2D);
+        GL11.glEnable(GL11.GL_BLEND);
+        GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+        GL11.glDisable(GL11.GL_ALPHA_TEST);
+        GL11.glTexEnvi(GL11.GL_TEXTURE_ENV, GL11.GL_TEXTURE_ENV_MODE, GL11.GL_MODULATE);
+        GL11.glBindTexture(GL11.GL_TEXTURE_2D, texture);
+        GL11.glColor4f(1f, 1f, 1f, alpha);
+        float w = icon.getWidth() * 1.25f, h = icon.getHeight() * 1.25f;
+        GL11.glBegin(GL11.GL_QUADS);
+        GL11.glTexCoord2f(0f, 0f); GL11.glVertex2f(x - w, y - h);
+        GL11.glTexCoord2f(1f, 0f); GL11.glVertex2f(x + w, y - h);
+        GL11.glTexCoord2f(1f, 1f); GL11.glVertex2f(x + w, y + h);
+        GL11.glTexCoord2f(0f, 1f); GL11.glVertex2f(x - w, y + h);
+        GL11.glEnd();
+    }
     private void drawFadedIcon(SpriteAPI icon, float x, float y, float alpha) {
         GL11.glEnable(GL11.GL_TEXTURE_2D);
         GL11.glEnable(GL11.GL_BLEND);
@@ -271,7 +301,7 @@ public final class CampaignRadialMenu implements CampaignInputListener, Campaign
         icon.bindTexture();
         float tx = icon.getTexX(), ty = icon.getTexY();
         float tw = icon.getTexWidth(), th = icon.getTexHeight();
-        float width = icon.getWidth(), height = icon.getHeight();
+        float width = icon.getWidth() * 1.25f, height = icon.getHeight() * 1.25f;
         GL11.glBegin(GL11.GL_QUADS);
         for (int i = 0; i < IconFade.MESH.length; i += 3) {
             float u = IconFade.MESH[i], v = IconFade.MESH[i + 1];
