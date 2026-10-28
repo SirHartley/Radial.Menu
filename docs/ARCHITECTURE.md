@@ -34,6 +34,7 @@ Technical routing for the current implementation. Code paths below are relative 
 | `RadialMenuModPlugin.onGameLoad()` | `PlayerSettings.reload()`, `removeListenerOfClass(CampaignRadialMenu.class)`, then `addListener(new CampaignRadialMenu(config), true)` (transient) |
 | `data/config/radial_menu.json` | Ordered `abilities` array of ability ids; `RadialMenuConfig.fromJSON` |
 | `data/config/LunaSettings.csv` | LunaLib settings rows (one General tab, a Hotkeys header and three `Keycode` rows); ids, types and defaults mirror `config/Setting` |
+| `data/config/LunaSettingsConfig.json` | LunaLib mod-list icon: `radial_menu.iconPath` is `graphics/radialmenu/icon/small_icon_radialmenu.png` (40x40) |
 
 Load order: `onApplicationLoad -> RadialMenuConfig.fromJSON -> PlayerSettings.install` -> `onGameLoad -> PlayerSettings.reload -> removeListenerOfClass -> addListener`.
 
@@ -47,8 +48,9 @@ One gesture: opening key down `-> CampaignRadialMenu.prepareWheel -> RadialSelec
 - `PlayerSettings.reload` reads through `LunaSettings.getInt`, which loads LunaLib's settings on first use.
 - LunaLib does not call listeners for settings saved during new-game setup (`if (!newGame) LunaSettings.reportSettingsChanged(mod)`), so `onGameLoad` reloads.
 - LunaLib passes `fieldName` and `fieldDescription` to `addPara` as format strings; write a literal percent sign as `%%`.
+- LunaLib reads `data/config/LunaSettingsConfig.json` merged across all mods and takes `iconPath` under this mod's id for its mod list. The path is a literal asset reference, so `ReleaseBuild` fails a package that leaves the icon out.
 
-Sources (LunaLib 2.0.1, `libs/Lazylib_lunalib.zip`): `LunaSettings.kt` `getInt`, `LunaSettingsLoader.kt` (`Keycode` defaults), `LunaUIKeybindButton.kt` (Escape clears to `0`), `LunaSettingsUIModsPanel.kt` line 614, `LunaSettingsUISettingsPanel.kt` lines 330 and 341.
+Sources (LunaLib 2.0.1, `libs/Lazylib_lunalib.zip`): `LunaSettings.kt` `getInt`, `LunaSettingsLoader.kt` (`Keycode` defaults), `LunaUIKeybindButton.kt` (Escape clears to `0`), `LunaSettingsUIModsPanel.kt` line 614, `LunaSettingsUISettingsPanel.kt` lines 330 and 341, `LunaSettingsConfigLoader.kt`.
 
 ### Build and release tools
 
