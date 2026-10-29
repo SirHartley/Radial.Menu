@@ -13,10 +13,10 @@ Reviews, explanations, audits, and proposals are read-only unless the user reque
 1. Read the current remote `CLAUDE.md` in full at the start of each new task. Within the same task, reuse the version already read unless the instructions change. Read new or changed instruction files before following them.
 2. Use the `starsector-knowledge` skill before answering or changing anything related to vanilla Starsector. It contains the official API, decompiled internals, and vanilla data for one exact game version (0.98a-RC8). Do not rely on memory.
 3. Use the `patchlib` skill only when the official API cannot reach what is needed, and for any PatchLib patch, hook or redirect.
-4. If a skill is incomplete, inspect the read-only archives under `libs/`. Extract them to a temporary directory, never into the repository.
+4. If a skill is incomplete, inspect the read-only archives under `libs`. Extract them to a temporary directory, never into the repository.
    - `starfarer.api.zip` contains the official game API source; `starfarer.api.jar` is the compile jar.
    - `GraphicsLib.zip`, `Lazylib_lunalib.zip`, `MagicLib.zip` and `PatchLib.zip` contain the library mods and their jars.
-   - For GraphicsLib, LazyLib, LunaLib, MagicLib and PatchLib, `libs/` is the primary source because the Starsector skill covers vanilla only.
+   - For GraphicsLib, LazyLib, LunaLib, MagicLib and PatchLib, `libs` is the primary source because the Starsector skill covers vanilla only.
 5. Select the required guides using [Which guide to read](#which-guide-to-read). Apply every matching row, including for reviews and fixes to existing behavior.
 
 ### Which guide to read
@@ -49,7 +49,7 @@ Resolve a technical conflict between documents, comments and code against the ex
 - Work only in the current task checkout. A live mod installation and every unrelated checkout are read-only unless the user explicitly asks you to change them.
 - Do not deploy or synchronize the mod after merge unless the user explicitly requests it.
 - Until release, cross-version campaign saves are unsupported. Remove obsolete upgrades, saved payloads and migrations instead of retaining compatibility scaffolding. Preserve normal save/load within the current version, transient-state restoration and live runtime safeguards.
-- Keep all Java tools and automated checks under `jars/src/radialmenu/tools/`, in the normal source tree. Do not add separate test source trees or duplicate game classes. Tools may read existing game and mod constants and types; do not change runtime classes to support them.
+- Keep all Java tools and automated checks under `jars/src/radialmenu/tools`, in the normal source tree. Do not add separate test source trees or duplicate game classes. Tools may read existing game and mod constants and types; do not change runtime classes to support them.
 - Prefer listeners and existing callbacks over `EveryFrameScript` polling. Before adding or retaining a polling solution, verify against the exact game source that no existing callback covers the requirement. Document the missing coverage and keep the scan scope and frequency to what the behavior needs.
 
 ### Validate and merge
@@ -81,7 +81,7 @@ Update documents automatically as part of each relevant change, not by a backgro
 | `docs/RELEASE.md` | Version numbers, release builds, package contents, the version file and publishing | Keep the builder constants, `.github/workflows/release.yml` and `radialmenu.version` aligned with it. Do not publish tags without a release request. |
 | `Changelog` and `docs/CHANGELOG.md` | Shipped change notes and how agents write them | Add or amend unreleased entries with each implementation task; preserve published entries. Keep formatting compatible with release-note extraction. |
 | `docs/ARCHITECTURE.md` | Technical routing: owners, registrations, data flow, lifecycle and cross-system constraints | Update the affected route or contract; remove obsolete owners. Use exact paths and symbols. No writing advice, release history, or duplicate policy. |
-| `.claude/agents/*.md` | Subagent definitions | Update when the research workflow, sources or `libs/` layout change. |
+| `.claude/agents/*.md` | Subagent definitions | Update when the research workflow, sources or `libs` layout change. |
 
 Give each fact one home. Move useful detail to its proper owner and link to it; do not keep a second copy in architecture. After moving a section, repair inbound links and check that no requirement or technical constraint was lost.
 
