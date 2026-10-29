@@ -11,6 +11,7 @@ public enum Setting {
     THIRD_HOTKEY("radial_menu_third_hotkey", Keyboard.KEY_RCONTROL),
     WHEEL_SLOTS("radial_menu_wheel_slots", 7, 1, 10),
     SUBMENU_SLOTS("radial_menu_submenu_slots", 5, 1, 10),
+    ICONS_ONLY("radial_menu_icons_only", true),
     LIFT("radial_menu_lift", true),
     NO_ANIMATION("radial_menu_no_animation", false);
 

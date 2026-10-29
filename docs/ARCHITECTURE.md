@@ -39,7 +39,7 @@ Technical routing for the current implementation. Code paths below are relative 
 | `RadialMenuModPlugin.onGameLoad()` | `PlayerSettings.reload()`, `removeListenerOfClass(CampaignRadialMenu.class)`, then `addListener(new CampaignRadialMenu(layout), true)` (transient) |
 | `data/config/radial_menu.json` | Default main wheel: an ordered `abilities` array of at most `RadialLayout.MAIN_SLOTS` ability ids; `RadialMenuConfig.fromJSON` |
 | `radial_menu_layout.json` (common data) | The edited layout, shared by every campaign; `RadialLayout.load` and `RadialLayout.set` |
-| `data/config/LunaSettings.csv` | LunaLib settings rows (one General tab: a Hotkeys header and three `Keycode` rows, a Wheel header and two `Int` rows, an Animation header and two `Boolean` rows); ids, types and defaults mirror `config/Setting` |
+| `data/config/LunaSettings.csv` | LunaLib settings rows (one General tab: a Hotkeys header and three `Keycode` rows, a Wheel header with two `Int` rows and one `Boolean` row, an Animation header and two `Boolean` rows); ids, types and defaults mirror `config/Setting` |
 | `data/config/LunaSettingsConfig.json` | LunaLib mod-list icon: `radial_menu.iconPath` is `graphics/radialmenu/icon/small_icon_radialmenu.png` (40x40) |
 
 Load order: `onApplicationLoad -> RadialMenuConfig.fromJSON -> RadialLayout.load -> loadTexture -> PlayerSettings.install` -> `onGameLoad -> PlayerSettings.reload -> removeListenerOfClass -> addListener`.
@@ -51,7 +51,7 @@ One gesture: opening key down `-> CampaignRadialMenu.openWheel -> RadialSelectio
 `config/Setting` owns ids and defaults. `data/config/LunaSettings.csv` supplies the rows and owns the setting names and help text (`fieldName`, `fieldDescription`); it must match `Setting` on ids, types and defaults. `config/PlayerSettings` installs a `LunaSettingsListener` on application start, reloads on every LunaLib save and on game load, and caches sanitized values. Runtime callers read `PlayerSettings.get`, never LunaLib each frame.
 
 - A hotkey is a LunaLib `Keycode`: an LWJGL key code, `0` when the player clears it with Escape. `Setting.sanitize` maps a missing or out-of-range value to the default.
-- `Setting.LIFT` and `Setting.NO_ANIMATION` are LunaLib `Boolean` rows, read with `LunaSettings.getBoolean` and cached as 0 or 1; `PlayerSettings.enabled` reads them.
+- `Setting.ICONS_ONLY`, `Setting.LIFT` and `Setting.NO_ANIMATION` are LunaLib `Boolean` rows, read with `LunaSettings.getBoolean` and cached as 0 or 1; `PlayerSettings.enabled` reads them.
 - The slot counts are LunaLib `Int` rows; `Setting.sanitize` clamps them to their bounds. `RadialLayout.MAIN_SLOTS` and `SUBMENU_SLOTS` are those settings' maximums, so the stored layout always covers the largest wheel.
 - `PlayerSettings.reload` reads through `LunaSettings.getInt`, which loads LunaLib's settings on first use.
 - LunaLib does not call listeners for settings saved during new-game setup (`if (!newGame) LunaSettings.reportSettingsChanged(mod)`), so `onGameLoad` reloads.
@@ -88,6 +88,7 @@ Tools live in `radialmenu/tools/`, run as standalone programs with JDK 17 from t
 | `radial_menu_third_hotkey` | Third hotkey |
 | `radial_menu_wheel_slots` | Main wheel slots |
 | `radial_menu_submenu_slots` | Submenu slots |
+| `radial_menu_icons_only` | Icons only |
 | `radial_menu_lift` | Lift the hovered tile |
 | `radial_menu_no_animation` | No animations |
 
@@ -147,7 +148,7 @@ Runtime classes are in `radialmenu/` and `radialmenu/config/`. In `radialmenu/` 
 - Borders follow vanilla's ability slot: a 1-unit line in `Misc.getBasePlayerColor()` at full alpha with 3-unit chamfered corners, and a second line 1 unit inside it at half alpha with 2-unit chamfers. A disabled tile keeps its border; its icon dims and its label greys instead. `FeatheredSector.corners` builds each line's closed path and `stroke` turns it into a strip feathered by one physical pixel. Source: the ability bar slot's render and its border helper, translated from decompiled code (0.98a-RC8). Hit testing ignores the gaps: a point in a gap belongs to the sector its angle falls in.
 - The cooldown fill is drawn after the glows and before the icons, only while `AbilityPlugin.showCooldownIndicator()` is true. It covers the ring from the outer edge down to `getCooldownFraction()` of its depth, where the javadoc defines 0 as the start of the cooldown and 1 as its end; `BaseAbilityPlugin` returns 1 and shows the indicator only below 1. It is drawn in immediate mode each frame (`drawBand`) because its radius changes every frame. Abilities that recharge while usable, such as Catch.Release's charged abilities, show their recharge the same way. Sources: `AbilityPlugin` (`showCooldownIndicator`, `getCooldownFraction`), `BaseAbilityPlugin.getCooldownFraction` and `showCooldownIndicator` (0.98a-RC8).
 - The hovered available sector lifts with one `FaderUtil` per sector (`LIFT_IN` 0.08 s out, `LIFT_OUT` 0.15 s back, eased with smoothstep) while `Setting.LIFT` is on. With `Setting.NO_ANIMATION` both kinds of fader get zero durations, so `FaderUtil` jumps to its target, and the active glow stays at half its pulse. Settings are read when the wheel opens. `renderTime` clocks the faders with `System.nanoTime()`, clamped to 0.1 s, because the render callback has no frame time and runs while the campaign is paused. `drawMesh` blends the cached collapsed, base and lifted meshes vertex by vertex, which needs `FeatheredSector` to keep its vertex count and order independent of the outer radius. Icons, backdrops and labels move out by half the lift; the cooldown fill and the edit arc use the blended outer radius. Hit testing keeps the full lifted radius, so the edge does not flicker. Faders restart when a ring is built.
-- Empty has no icon; its label is centered in the tile. The edit hold is drawn after the outlines as an arc along the outer edge, growing clockwise.
+- With `Setting.ICONS_ONLY` on (the default), read when the wheel opens, no labels are built: icons are 44 units instead of 36 and sit at the tile's centre instead of 10 units below it, and Empty tiles draw nothing. Otherwise Empty, which has no icon, centres its label in the tile. The edit hold is drawn after the outlines as an arc along the outer edge, growing clockwise.
 - Icon hue and backdrop images are read once per icon with `openStream` and `ImageIO`. An unreadable icon logs a warning and the sector falls back to `Misc.getDarkPlayerColor()` with no backdrop.
 - Backdrop textures are uploaded on first draw, on the render thread, and kept in `backdropTextures` for the listener's lifetime. They are never deleted; a new listener after each game load uploads them again.
 

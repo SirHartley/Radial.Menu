@@ -77,6 +77,7 @@ public final class CampaignRadialMenu implements CampaignInputListener, Campaign
 
     private boolean animate = true;
     private boolean lift = true;
+    private boolean names;
 
     private Target pointer = Target.NONE;
     private float hold;
@@ -90,6 +91,7 @@ public final class CampaignRadialMenu implements CampaignInputListener, Campaign
     private void openWheel() {
         animate = !PlayerSettings.enabled(Setting.NO_ANIMATION);
         lift = PlayerSettings.enabled(Setting.LIFT);
+        names = !PlayerSettings.enabled(Setting.ICONS_ONLY);
         extension.setDuration(animate ? EXTEND_IN : 0f, animate ? EXTEND_OUT : 0f);
         int count = PlayerSettings.get(Setting.WHEEL_SLOTS);
         WheelEntry[] entries = new WheelEntry[count];
@@ -157,11 +159,12 @@ public final class CampaignRadialMenu implements CampaignInputListener, Campaign
             // a saved submenu icon can name a sprite from a mod that is no longer loaded
             if (entry.iconName != null) entry.icon = Global.getSettings().getSprite(entry.iconName);
             if (entry.icon != null) {
-                entry.icon.setSize(36f, 36f);
+                float size = names ? 36f : 44f;
+                entry.icon.setSize(size, size);
                 entry.icon.setNormalBlend();
             }
             entry.fillHue = entry.hue != null ? entry.hue : entry.iconName == null ? null : iconHue(entry.iconName);
-            entry.label = label(entry.title, ring, i, entry.icon != null);
+            entry.label = names ? label(entry.title, ring, i, entry.icon != null) : null;
         }
         return ring;
     }
@@ -456,23 +459,24 @@ public final class CampaignRadialMenu implements CampaignInputListener, Campaign
             WheelEntry entry = ring.entries[i];
             boolean available = available(entry);
             LabelAPI label = entry.label;
-            label.setColor(!available ? Misc.getGrayColor() : Misc.getTextColor());
+            if (label != null) label.setColor(!available ? Misc.getGrayColor() : Misc.getTextColor());
             double angle = ring.center(i);
             // contents ride half the lift, so they stay centred in the taller slice
             float radius = ring.inner + (ring.middle() - ring.inner) * grow
                     + eased[i] * RadialSelection.SELECTION_LIFT / 2f;
             float x = selection.getX() + (float) Math.cos(angle) * radius;
             float y = selection.getY() + (float) Math.sin(angle) * radius;
-            float labelHeight = label.computeTextHeight(label.getText());
             if (entry.icon == null) {
-                drawLabel(label, x, y, grow);
+                if (label != null) drawLabel(label, x, y, grow);
                 continue;
             }
             float alpha = (available ? 1f : 0.4f) * grow;
-            drawIconBackdrop(entry.iconName, entry.icon, x, y - 10f, alpha);
-            drawFadedIcon(entry.icon, x, y - 10f, alpha, false);
-            if (glow[i] > 0f) drawFadedIcon(entry.icon, x, y - 10f, alpha * glow[i] * 0.33f, true);
-            drawLabel(label, x, y + 12f + labelHeight / 2f, grow);
+            // without a name the icon takes the tile's centre
+            float iconY = label != null ? y - 10f : y;
+            drawIconBackdrop(entry.iconName, entry.icon, x, iconY, alpha);
+            drawFadedIcon(entry.icon, x, iconY, alpha, false);
+            if (glow[i] > 0f) drawFadedIcon(entry.icon, x, iconY, alpha * glow[i] * 0.33f, true);
+            if (label != null) drawLabel(label, x, y + 12f + label.computeTextHeight(label.getText()) / 2f, grow);
         }
         // Draw every border after all backgrounds; each tile is closed, so nothing is shared.
         // vanilla keeps a disabled slot's border in the base ui colour
