@@ -15,6 +15,8 @@ Release in the center, outside the ring, or without moving to cancel. **Escape**
 
 The wheel is kept inside the screen and uses the game's virtual UI coordinates, fonts, and player UI colors. Campaign mouse and keyboard input is captured while the wheel is open. The wheel does not pause campaign time.
 
+Under **Animation** in LunaLib's mod settings, turn off **Lift the hovered tile** to keep every tile in place, or turn on **No animations** to make lifts and submenus appear at once.
+
 ## Abilities
 
 By default the main wheel has 7 slots and each submenu 5 slots. Change both under **Wheel** in LunaLib's mod settings, from 1 to 10 each. Slots past the count keep their abilities and return when you raise it. Until you change a slot, the main wheel holds these abilities, clockwise from the top:
@@ -73,6 +75,7 @@ In-game smoke test:
 - Learn or lose an assigned ability between gestures. Confirm the next press updates the slot, while an already-open wheel keeps its targets stable and cannot activate a removed ability.
 - Hold the left mouse button on a slot for half a second. Confirm the arc fills and the ability list opens. Assign an ability, empty a slot, and cancel. Confirm the wheel shows each change and that a quick click does nothing.
 - Make a main wheel slot a submenu, choose an ability icon, then the mod icon, then a colour. Move onto it and confirm its tiles extend at once on the outer ring. Move outward onto them, assign abilities there, and confirm the edit list offers no Submenu. Move onto a neighbouring main tile and into the center, and confirm the submenu closes. Confirm a release over Submenu or Empty does nothing, and try a submenu at the bottom and one next to a screen edge.
+- Under Animation in LunaLib's mod settings, turn off Lift the hovered tile and confirm tiles stay in place. Turn it back on and turn on No animations; confirm lifts and submenus appear at once and the active-ability glow is steady.
 - Under Wheel in LunaLib's mod settings, set 10 slots of each, then 1 of each. Confirm the next wheel follows without a restart, labels stay inside their tiles, and hidden slots keep their abilities.
 - Load another save and restart the game. Confirm the layout is the same. Delete `radial_menu_layout.json.data` and confirm the defaults return.
 - Toggle Sustained Burn, Transponder, and Go Dark on and off. Verify the ability names and icons, wind-up, and normal ability incompatibilities. When turning the transponder on would reveal a hostile identity, verify the native confirmation appears and Cancel leaves it off.

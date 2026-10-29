@@ -38,19 +38,30 @@ public final class PlayerSettingsChecks {
         for (Setting setting : Setting.values()) {
             List<String> row = byId.get(setting.id);
             require(row != null, "csv row for " + setting);
-            require(row.get(2).equals(setting.keycode ? "Keycode" : "Int"), "type for " + setting);
-            require(Integer.parseInt(row.get(3)) == setting.fallback, "default for " + setting);
+            String type = switch (setting.type) {
+                case KEYCODE -> "Keycode";
+                case INT -> "Int";
+                case BOOLEAN -> "Boolean";
+            };
+            require(row.get(2).equals(type), "type for " + setting);
+            String fallback = setting.type == Setting.Type.BOOLEAN ? String.valueOf(setting.fallback != 0)
+                    : String.valueOf(setting.fallback);
+            require(row.get(3).equals(fallback), "default for " + setting);
             require(!row.get(1).isBlank() && !row.get(5).isBlank(), "name and description for " + setting);
             require(setting.sanitize(null) == setting.fallback, "missing value for " + setting);
-            if (setting.keycode) {
-                require(setting.sanitize(-1) == setting.fallback, "negative keycode for " + setting);
-                require(setting.sanitize(256) == setting.fallback, "out of range keycode for " + setting);
-                require(setting.sanitize(0) == 0, "cleared keybind kept for " + setting);
-            } else {
-                require(Integer.parseInt(row.get(6)) == setting.min, "minimum for " + setting);
-                require(Integer.parseInt(row.get(7)) == setting.max, "maximum for " + setting);
-                require(setting.sanitize(-1000) == setting.min, "clamp minimum for " + setting);
-                require(setting.sanitize(1000) == setting.max, "clamp maximum for " + setting);
+            switch (setting.type) {
+                case KEYCODE -> {
+                    require(setting.sanitize(-1) == setting.fallback, "negative keycode for " + setting);
+                    require(setting.sanitize(256) == setting.fallback, "out of range keycode for " + setting);
+                    require(setting.sanitize(0) == 0, "cleared keybind kept for " + setting);
+                }
+                case INT -> {
+                    require(Integer.parseInt(row.get(6)) == setting.min, "minimum for " + setting);
+                    require(Integer.parseInt(row.get(7)) == setting.max, "maximum for " + setting);
+                    require(setting.sanitize(-1000) == setting.min, "clamp minimum for " + setting);
+                    require(setting.sanitize(1000) == setting.max, "clamp maximum for " + setting);
+                }
+                case BOOLEAN -> require(setting.sanitize(0) == 0 && setting.sanitize(1) == 1, "boolean for " + setting);
             }
         }
         System.out.println("Player settings: " + checks + " checks passed");

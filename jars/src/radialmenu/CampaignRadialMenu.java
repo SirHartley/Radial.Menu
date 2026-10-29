@@ -65,10 +65,10 @@ public final class CampaignRadialMenu implements CampaignInputListener, Campaign
     }
 
     private static final float EDIT_HOLD = 0.5f;
-    private static final float LIFT_IN = 0.1f;
-    private static final float LIFT_OUT = 0.25f;
-    private static final float EXTEND_IN = 0.12f;
-    private static final float EXTEND_OUT = 0.1f;
+    private static final float LIFT_IN = 0.08f;
+    private static final float LIFT_OUT = 0.15f;
+    private static final float EXTEND_IN = 0.1f;
+    private static final float EXTEND_OUT = 0.08f;
 
     private final RadialLayout layout;
     private final RadialSelection selection = new RadialSelection(0);
@@ -81,6 +81,9 @@ public final class CampaignRadialMenu implements CampaignInputListener, Campaign
     private WheelRing submenu;
     private final FaderUtil extension = new FaderUtil(0f, EXTEND_IN, EXTEND_OUT);
 
+    private boolean animate = true;
+    private boolean lift = true;
+
     private Target pointer = Target.NONE;
     private float hold;
     private long lastInputNanos;
@@ -91,6 +94,9 @@ public final class CampaignRadialMenu implements CampaignInputListener, Campaign
     }
 
     private void openWheel() {
+        animate = !PlayerSettings.enabled(Setting.NO_ANIMATION);
+        lift = PlayerSettings.enabled(Setting.LIFT);
+        extension.setDuration(animate ? EXTEND_IN : 0f, animate ? EXTEND_OUT : 0f);
         int count = PlayerSettings.get(Setting.WHEEL_SLOTS);
         WheelEntry[] entries = new WheelEntry[count];
         boolean submenus = false;
@@ -103,7 +109,7 @@ public final class CampaignRadialMenu implements CampaignInputListener, Campaign
         double[] centers = new double[count];
         for (int i = 0; i < count; i++) centers[i] = selection.sectorAngle(i);
         main = prepare(new WheelRing(entries, centers, selection.sectorWidth(),
-                RadialSelection.INNER_RADIUS, RadialSelection.OUTER_RADIUS, false, LIFT_IN, LIFT_OUT));
+                RadialSelection.INNER_RADIUS, RadialSelection.OUTER_RADIUS, false, liftIn(), liftOut()));
         submenu = null;
         extension.forceOut();
         pointer = Target.NONE;
@@ -122,9 +128,18 @@ public final class CampaignRadialMenu implements CampaignInputListener, Campaign
             centers[i] = selection.childAngle(i);
         }
         submenu = prepare(new WheelRing(entries, centers, RadialSelection.CHILD_WIDTH,
-                RadialSelection.CHILD_INNER_RADIUS, RadialSelection.CHILD_OUTER_RADIUS, true, LIFT_IN, LIFT_OUT));
+                RadialSelection.CHILD_INNER_RADIUS, RadialSelection.CHILD_OUTER_RADIUS, true, liftIn(), liftOut()));
         extension.forceOut();
         extension.fadeIn();
+    }
+
+    // a fader with no duration jumps straight to its target
+    private float liftIn() {
+        return animate ? LIFT_IN : 0f;
+    }
+
+    private float liftOut() {
+        return animate ? LIFT_OUT : 0f;
     }
 
     private void retract() {
@@ -371,7 +386,7 @@ public final class CampaignRadialMenu implements CampaignInputListener, Campaign
         ring.updateGeometry();
         float[] eased = new float[count];
         for (int i = 0; i < count; i++) {
-            if (i == lit) ring.lift[i].fadeIn();
+            if (i == lit && lift) ring.lift[i].fadeIn();
             else ring.lift[i].fadeOut();
             ring.lift[i].advance(amount);
             eased[i] = ease(ring.lift[i].getBrightness());
@@ -393,7 +408,7 @@ public final class CampaignRadialMenu implements CampaignInputListener, Campaign
             outlines[i] = Misc.scaleAlpha(rim, 0.75f * grow);
         }
         // Active abilities pulse inward from every edge, even when temporarily unavailable.
-        double pulse = 0.5 + 0.5 * Math.sin(Math.floorMod(System.nanoTime(), 3_000_000_000L)
+        double pulse = !animate ? 0.5 : 0.5 + 0.5 * Math.sin(Math.floorMod(System.nanoTime(), 3_000_000_000L)
                 * (2 * Math.PI / 3_000_000_000.0));
         for (int i = 0; i < count; i++) {
             WheelEntry entry = ring.entries[i];

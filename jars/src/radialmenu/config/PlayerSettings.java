@@ -24,7 +24,7 @@ public final class PlayerSettings implements LunaSettingsListener {
     public static void reload() {
         Map<Setting, Integer> values = new EnumMap<>(Setting.class);
         for (Setting setting : Setting.values()) {
-            values.put(setting, setting.sanitize(LunaSettings.getInt(RadialMenuModPlugin.MOD_ID, setting.id)));
+            values.put(setting, setting.sanitize(read(setting)));
         }
         current = values;
     }
@@ -34,8 +34,18 @@ public final class PlayerSettings implements LunaSettingsListener {
         if (RadialMenuModPlugin.MOD_ID.equals(modId)) reload();
     }
 
+    private static Integer read(Setting setting) {
+        if (setting.type != Setting.Type.BOOLEAN) return LunaSettings.getInt(RadialMenuModPlugin.MOD_ID, setting.id);
+        Boolean value = LunaSettings.getBoolean(RadialMenuModPlugin.MOD_ID, setting.id);
+        return value == null ? null : value ? 1 : 0;
+    }
+
     public static int get(Setting setting) {
         return current.get(setting);
+    }
+
+    public static boolean enabled(Setting setting) {
+        return get(setting) != 0;
     }
 
     public static Map<Setting, Integer> defaults() {
