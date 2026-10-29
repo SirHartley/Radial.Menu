@@ -336,8 +336,8 @@ public final class CampaignRadialMenu implements CampaignInputListener, Campaign
 
     // like vanilla's ability bar: the ability's own on-sound replaces the pressed sound when it has one
     private void activate(WheelEntry entry) {
-        if (entry.kind == Kind.SUBMENU) return;
-        AbilityPlugin ability = entry.kind == Kind.ABILITY ? ability(entry.action) : null;
+        if (entry.kind != Kind.ABILITY) return;
+        AbilityPlugin ability = ability(entry.action);
         if (ability == null || !entry.action.press(ability)) {
             Global.getSoundPlayer().playUISound("ui_button_disabled_pressed", 1f, 1f);
         } else if (!ability.hasCustomButtonPressSounds()) {
@@ -371,7 +371,9 @@ public final class CampaignRadialMenu implements CampaignInputListener, Campaign
         if (!target.equals(pointer)) {
             pointer = target;
             hold = 0f;
-            if (entry != null) Global.getSoundPlayer().playUISound("ui_button_mouseover", 1f, 1f);
+            if (entry != null && entry.kind != Kind.EMPTY) {
+                Global.getSoundPlayer().playUISound("ui_button_mouseover", 1f, 1f);
+            }
         }
         if (entry == null || !Mouse.isButtonDown(0)) {
             hold = 0f;
