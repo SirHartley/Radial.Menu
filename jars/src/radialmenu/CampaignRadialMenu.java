@@ -101,8 +101,9 @@ public final class CampaignRadialMenu implements CampaignInputListener, Campaign
             int slot = back >= 0 && i > back ? i - 1 : i;
             Entry entry = i == back ? new Entry(Kind.BACK, -1, "Back", null, null, null)
                     : entry(submenu ? layout.get(submenuSlot, slot) : layout.get(slot, -1), slot);
-            if (entry.iconName != null) {
-                entry.icon = Global.getSettings().getSprite(entry.iconName);
+            // a saved submenu icon can name a sprite from a mod that is no longer loaded
+            if (entry.iconName != null) entry.icon = Global.getSettings().getSprite(entry.iconName);
+            if (entry.icon != null) {
                 entry.icon.setSize(36f, 36f);
                 entry.icon.setNormalBlend();
             }
