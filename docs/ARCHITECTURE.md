@@ -18,6 +18,7 @@ Technical routing for the current implementation. Code paths below are relative 
 | Opening keys, Escape, cancel, release target | `CampaignRadialMenu.processCampaignInputPreCore -> RadialSelection.update -> RadialSelection.hoveredSector` |
 | What a selection does | `CampaignRadialMenu.processCampaignInputPreCore -> CampaignRadialMenu.allowed -> RadialAbility.press -> AbilityPlugin.pressButton` |
 | Greyed-out or pulsing sector | `RadialAbility.isAvailable` (`AbilityPlugin.isUsable`), `RadialAbility.isActive` (`AbilityPlugin.isActiveOrInProgress`) |
+| Cooldown fill | `CampaignRadialMenu.drawCooldown` (`AbilityPlugin.showCooldownIndicator`, `getCooldownFraction`) |
 | Wheel does not open or closes by itself | `CampaignRadialMenu.allowed`, called from input and from `renderInUICoordsAboveUIBelowTooltips` |
 | Sector shapes, borders, dividers, glow | `CampaignRadialMenu.updateGeometry -> FeatheredSector` |
 | Sector fill colour | `CampaignRadialMenu.iconHue -> IconHue.average` |
@@ -119,6 +120,7 @@ Runtime classes are in `radialmenu/` and `radialmenu/config/`. In `radialmenu/` 
 - Coordinates are virtual UI pixels. `FeatheredSector` meshes are rebuilt only when `getScreenScaleMult()` changes.
 - `renderInUICoordsAboveUIBelowTooltips` pushes `GL_ALL_ATTRIB_BITS` and pops it in `finally`. `drawMesh` reasserts blending for every mesh because stock labels change GL state.
 - All sector backgrounds are drawn before any icon or label, and all outlines and dividers after them, so neighbouring sectors cannot cover each other.
+- The cooldown fill is drawn after the glows and before the icons, only while `AbilityPlugin.showCooldownIndicator()` is true. It covers the ring from the outer edge down to `getCooldownFraction()` of its depth, where the javadoc defines 0 as the start of the cooldown and 1 as its end; `BaseAbilityPlugin` returns 1 and shows the indicator only below 1. It is drawn in immediate mode each frame (`drawBand`) because its radius changes every frame. Abilities that recharge while usable, such as Catch.Release's charged abilities, show their recharge the same way. Sources: `AbilityPlugin` (`showCooldownIndicator`, `getCooldownFraction`), `BaseAbilityPlugin.getCooldownFraction` and `showCooldownIndicator` (0.98a-RC8).
 - Icon hue and backdrop images are read once per icon with `openStream` and `ImageIO`. An unreadable icon logs a warning and the sector falls back to `Misc.getDarkPlayerColor()` with no backdrop.
 - Backdrop textures are uploaded on first draw, on the render thread, and kept in `backdropTextures` for the listener's lifetime. They are never deleted; a new listener after each game load uploads them again.
 

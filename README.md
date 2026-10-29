@@ -21,7 +21,7 @@ By default, the configuration requests these abilities, clockwise from the top. 
 4. **Transponder**: toggle on or off, with the normal identity-reveal warning when required.
 5. **Go Dark**: toggle on or off.
 
-Each sector shows the ability name above its icon. Owned abilities that are cooling down or otherwise unusable are greyed out, not removed. Membership and positions are captured when the opening key is pressed, so learning or losing an ability cannot move a different action under the mouse during that gesture. Ownership and usability are checked again through the current fleet's ability lookup on release. The next fresh press rebuilds the wheel from the player's current abilities. If no configured abilities are owned, the wheel does not open.
+Each sector shows the ability name above its icon. Owned abilities that are cooling down or otherwise unusable are greyed out, not removed. While an ability cools down, its sector fills from the outer edge inward; the ability is ready when the fill reaches the inner ring. Membership and positions are captured when the opening key is pressed, so learning or losing an ability cannot move a different action under the mouse during that gesture. Ownership and usability are checked again through the current fleet's ability lookup on release. The next fresh press rebuilds the wheel from the player's current abilities. If no configured abilities are owned, the wheel does not open.
 
 Selection uses the game's normal ability-button handler, preserving toggle behavior, sounds, incompatibilities, costs, and confirmation dialogs. The mod does not create loot or replace ability effects.
 
@@ -64,7 +64,7 @@ In-game smoke test:
 - Change the configured order and add an ability the player does not own. Restart and confirm the order is respected and the unowned entry is omitted. Try an empty list and a single owned ability.
 - Learn or lose a configured ability between gestures. Confirm the next press updates the wheel, while an already-open wheel keeps its targets stable and cannot activate a removed ability.
 - Toggle Sustained Burn, Transponder, and Go Dark on and off. Verify the ability names and icons, wind-up, and normal ability incompatibilities. When turning the transponder on would reveal a hostile identity, verify the native confirmation appears and Cancel leaves it off.
-- Activate Emergency Burn once. Verify the normal fuel cost/effect and a disabled sector during its active/cooldown period. Try without enough fuel.
+- Activate Emergency Burn once. Verify the normal fuel cost/effect and a disabled sector during its active/cooldown period, with the cooldown fill growing from the outer edge to the inner ring. Try without enough fuel.
 - Cancel with the center, outside the ring, and Escape. Test every hotkey, combinations of hotkeys, and a stationary key tap near a screen edge.
 - Open Fleet/Intel, pause menus, or a dialog, and switch focus away. Confirm no wheel or unintended activation.
 - In LunaLib's mod settings, change one hotkey and clear another, then save. Confirm the wheel follows the new keys without a restart, after loading a save, and in a new game. Clear all three and confirm the wheel cannot open.

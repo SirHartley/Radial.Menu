@@ -216,6 +216,14 @@ public final class CampaignRadialMenu implements CampaignInputListener, Campaign
                     drawMesh(sector.endGlow, glow);
                 }
             }
+            for (int i = 0; i < actions.length; i++) {
+                AbilityPlugin ability = ability(actions[i]);
+                if (ability == null || !ability.showCooldownIndicator()) continue;
+                double start = selection.sectorAngle(i) - selection.sectorWidth() / 2;
+                float outer = RadialSelection.OUTER_RADIUS + (i == highlightedSector ? RadialSelection.SELECTION_LIFT : 0f);
+                drawCooldown(start, start + selection.sectorWidth(), outer, ability.getCooldownFraction(),
+                        Misc.setAlpha(activeColors[i], 110));
+            }
             GL11.glEnable(GL11.GL_TEXTURE_2D);
             for (int i = 0; i < actions.length; i++) {
                 boolean available = actions[i].isAvailable(ability(actions[i]));
@@ -334,6 +342,43 @@ public final class CampaignRadialMenu implements CampaignInputListener, Campaign
             GL11.glVertex2f(selection.getX() + vertices[i], selection.getY() + vertices[i + 1]);
         }
         GL11.glEnd();
+    }
+
+    // fills from the outer edge inward; vanilla's fraction is 0 at the start of the cooldown and 1 at its end
+    private void drawCooldown(double start, double end, float outer, float fraction, Color color) {
+        float feather = 1f / Global.getSettings().getScreenScaleMult();
+        float inner = RadialSelection.INNER_RADIUS + feather;
+        float top = outer - feather;
+        float front = top - (top - inner) * Math.max(0f, Math.min(1f, fraction));
+        drawBand(start, end, front - feather, front, 0f, 1f, color);
+        drawBand(start, end, front, top, 1f, 1f, color);
+    }
+
+    private void drawBand(double start, double end, float inner, float outer,
+                          float innerCoverage, float outerCoverage, Color color) {
+        GL11.glDisable(GL11.GL_TEXTURE_2D);
+        GL11.glEnable(GL11.GL_BLEND);
+        GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+        GL11.glShadeModel(GL11.GL_SMOOTH);
+        GL11.glDisable(GL11.GL_ALPHA_TEST);
+        int steps = FeatheredSector.steps(start, end);
+        GL11.glBegin(GL11.GL_QUADS);
+        for (int step = 0; step < steps; step++) {
+            double a = start + (end - start) * step / steps;
+            double b = start + (end - start) * (step + 1) / steps;
+            bandVertex(a, inner, innerCoverage, color);
+            bandVertex(a, outer, outerCoverage, color);
+            bandVertex(b, outer, outerCoverage, color);
+            bandVertex(b, inner, innerCoverage, color);
+        }
+        GL11.glEnd();
+    }
+
+    private void bandVertex(double angle, float radius, float coverage, Color color) {
+        GL11.glColor4f(color.getRed() / 255f, color.getGreen() / 255f, color.getBlue() / 255f,
+                color.getAlpha() / 255f * coverage);
+        GL11.glVertex2f(selection.getX() + (float) Math.cos(angle) * radius,
+                selection.getY() + (float) Math.sin(angle) * radius);
     }
 
     private void drawLabel(LabelAPI label, float x, float y) {
