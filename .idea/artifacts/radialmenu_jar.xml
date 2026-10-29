@@ -1,0 +1,8 @@
+<component name="ArtifactManager">
+  <artifact type="jar" build-on-make="true" name="radialmenu:jar">
+    <output-path>$PROJECT_DIR$/jars</output-path>
+    <root id="archive" name="radialmenu.jar">
+      <element id="module-output" name="Radial.Menu" />
+    </root>
+  </artifact>
+</component>

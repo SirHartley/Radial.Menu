@@ -72,6 +72,7 @@ Tools live in `radialmenu/tools/`, run as standalone programs with JDK 17 from t
 | `tools/ReleaseBuildChecks.java` | Headless checks of changelog parsing, version stamping and the package file filter |
 | `tools/PlayerSettingsChecks.java` | Checks `data/config/LunaSettings.csv` against `config/Setting`: columns, `radial_menu_` prefix, unique ids, a `Setting` for every row, `Keycode`, `Int`, `Boolean` or `Radio` type, defaults, `Int` bounds, `Radio` choices, help text, escaped `%`, keycode sanitizing and count clamping. Run from the repository root after the compile gate: `java -cp <classes>:<compile jars> radialmenu.tools.PlayerSettingsChecks` |
 | `.github/workflows/release.yml` | Manual only (`workflow_dispatch`): from a branch it runs the checks and keeps a preview package; from a version tag it publishes |
+| `.idea/`, `Radial.Menu.iml` | IntelliJ project, matching Catch.Release's: project JDK `corretto-17` at language level 17, module `Radial.Menu` (`modules.xml`), the `radialmenu:jar` artifact built on make into the gitignored `jars/radialmenu.jar` that `mod_info.json` loads, and the Run Starsector configuration, which makes the project and starts the game from the local install with the debugger on port 5005 |
 
 ## Data identity
 
