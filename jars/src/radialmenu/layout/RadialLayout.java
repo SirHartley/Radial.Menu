@@ -15,7 +15,11 @@ public final class RadialLayout {
 
     static final int MAIN_SLOTS = Setting.WHEEL_SLOTS.max;
     static final int SUBMENU_SLOTS = Setting.SUBMENU_SLOTS.max;
-    public static final String MOD_ICON = "graphics/radialmenu/icon/small_icon_radialmenu.png";
+    // the mod's own icons are greyscale, and the wheel colours them; no vanilla loader preloads them
+    public static final String ICON_FOLDER = "graphics/radialmenu/icon/";
+    public static final String MOD_ICON = ICON_FOLDER + "small_icon_radialmenu.png";
+    // category icons are ICON_FOLDER 1.png to CATEGORY_ICONS.png; raise it when adding one
+    public static final int CATEGORY_ICONS = 36;
     private static final String FILE = "radial_menu_layout.json";
 
     private final List<Slot> main;
@@ -44,6 +48,17 @@ public final class RadialLayout {
 
     static RadialLayout fromJSON(JSONObject json) throws JSONException {
         return new RadialLayout(slots(json.getJSONArray("main"), MAIN_SLOTS, true));
+    }
+
+    public static List<String> modIcons() {
+        List<String> icons = new ArrayList<>();
+        icons.add(MOD_ICON);
+        for (int i = 1; i <= CATEGORY_ICONS; i++) icons.add(ICON_FOLDER + i + ".png");
+        return icons;
+    }
+
+    public static boolean isModIcon(String path) {
+        return path != null && path.startsWith(ICON_FOLDER);
     }
 
     public Slot get(int slot, int child) {
