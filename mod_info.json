@@ -1,9 +1,9 @@
 {
   "id": "radial_menu",
   "name": "Campaign Radial Menu",
-  "author": "Local",
+  "author": "SirHartley & PresidentMattDamon",
   "version": "0.1.0",
-  "description": "Hold B or Ctrl (changeable in the LunaLib mod settings) in campaign for a configurable radial ability menu. Only abilities owned by the player's fleet are shown. Release over a sector to use the normal ability button.",
+  "description": "Hold B or Ctrl (changeable in the LunaLib mod settings) in campaign for a configurable radial ability menu.",
   "gameVersion": "0.98a",
   "jars": ["jars/radialmenu.jar"],
   "modPlugin": "radialmenu.RadialMenuModPlugin",
