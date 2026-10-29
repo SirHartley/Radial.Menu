@@ -127,7 +127,7 @@ Runtime classes are in `radialmenu/` and `radialmenu/config/`. In `radialmenu/` 
 ### Gesture
 
 - A ring's entries are captured when it is built (`openWheel` for the main ring, `extend` for a submenu) and cannot change while it is shown. Availability is checked again on release, through the current fleet's `getAbility`. Only ability entries act on release; Submenu and Empty do nothing.
-- A release closer than `INNER_RADIUS` to the press point selects nothing, so edge clamping cannot turn a stationary tap into a selection.
+- The centre hole is `INNER_RADIUS` (56 px); the pointer inside it cancels a release and closes an open submenu. A release closer than `INNER_RADIUS` to the press point also selects nothing, so edge clamping cannot turn a stationary tap into a selection.
 - Sector 0 points up; the rest follow clockwise. Boundaries are half-open, so a point belongs to exactly one sector. Submenu tiles are `CHILD_WIDTH` (30 degrees) wide, centered on their parent sector, clockwise.
 - `updateExtension` opens a submenu as soon as `target` lands on its main tile. While one is open, the pointer inside `INNER_RADIUS` closes it, the main band (`INNER_RADIUS` to `OUTER_RADIUS`) closes it on any other main tile (opening that one if it is a submenu), and anything farther out keeps it open, so a diagonal move toward a far child tile cannot cross a neighbour's tile and close it. Past `OUTER_RADIUS`, `target` returns a child by angle or nothing outside the arc.
 - The submenu ring starts at `CHILD_INNER_RADIUS`, past a lifted main tile. When any shown main slot is a submenu, the wheel is clamped on screen by `CHILD_OUTER_RADIUS + SELECTION_LIFT` instead of the main ring's lifted radius.

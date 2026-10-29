@@ -3,7 +3,7 @@ package radialmenu;
 /** Hold/release gesture. Coordinates and dimensions are in virtual UI pixels. */
 final class RadialSelection {
     // Fixed design dimensions, not physical screen pixels; the game handles UI scaling.
-    static final float INNER_RADIUS = 42f;
+    static final float INNER_RADIUS = 56f;
     static final float OUTER_RADIUS = 180f;
     static final float SELECTION_LIFT = 20f;
     // constant width of the gap between neighbouring tiles
