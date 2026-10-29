@@ -96,11 +96,11 @@ Tools live in `radialmenu/tools/`, run as standalone programs with JDK 17 from t
 | `radial_menu_icons_only` | Icons only |
 | `radial_menu_tinted_tiles` | Tinted tiles |
 | `radial_menu_tooltips` | Ability tooltips |
-| `radial_menu_return_mouse` | Return the mouse |
+| `radial_menu_return_mouse` | Return cursor |
 | `radial_menu_pause` | Pause while open |
 | `radial_menu_select_by_direction` | Select by direction |
-| `radial_menu_lift` | Lift the hovered tile |
-| `radial_menu_no_animation` | No animations |
+| `radial_menu_lift` | Expand hovered tile |
+| `radial_menu_no_animation` | Disable animations |
 
 ## Source owners
 
