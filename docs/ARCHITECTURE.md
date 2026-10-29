@@ -13,17 +13,19 @@ Technical routing for the current implementation. Code paths below are relative 
 
 | Change / symptom | Route |
 |---|---|
-| Which abilities get a sector, and their order | `data/config/radial_menu.json -> RadialMenuConfig.fromJSON -> RadialMenuConfig.ownedAbilities -> CampaignRadialMenu.prepareWheel` |
+| What each slot holds | `RadialLayout.load` (saved layout, else `data/config/radial_menu.json -> RadialMenuConfig.fromJSON -> RadialLayout.defaults`) `-> CampaignRadialMenu.buildLayer -> CampaignRadialMenu.entry`; [Layout](#layout) |
+| Submenus and Back | `CampaignRadialMenu.trackPointer` (`LAYER_DWELL`) `-> buildLayer -> RadialSelection.relayer` |
+| Editing a slot | `CampaignRadialMenu.trackPointer` (`EDIT_HOLD`) `-> edit -> SlotPicker.open -> RadialLayout.set` |
 | Hotkeys | `data/config/LunaSettings.csv -> config/PlayerSettings.reload -> CampaignRadialMenu.openingKeyHeld` (`Setting.HOTKEYS`); [Settings](#settings) |
 | Opening keys, Escape, cancel, release target | `CampaignRadialMenu.processCampaignInputPreCore -> RadialSelection.update -> RadialSelection.hoveredSector` |
-| What a selection does | `CampaignRadialMenu.processCampaignInputPreCore -> CampaignRadialMenu.allowed -> RadialAbility.press -> AbilityPlugin.pressButton` |
-| Greyed-out or pulsing sector | `RadialAbility.isAvailable` (`AbilityPlugin.isUsable`), `RadialAbility.isActive` (`AbilityPlugin.isActiveOrInProgress`) |
+| What a selection does | `CampaignRadialMenu.processCampaignInputPreCore -> CampaignRadialMenu.allowed -> RadialAbility.press -> AbilityPlugin.pressButton`, for ability entries only |
+| Greyed-out or pulsing sector | `CampaignRadialMenu.available`, `RadialAbility.isAvailable` (`AbilityPlugin.isUsable`), `RadialAbility.isActive` (`AbilityPlugin.isActiveOrInProgress`) |
 | Cooldown fill | `CampaignRadialMenu.drawCooldown` (`AbilityPlugin.showCooldownIndicator`, `getCooldownFraction`) |
 | Wheel does not open or closes by itself | `CampaignRadialMenu.allowed`, called from input and from `renderInUICoordsAboveUIBelowTooltips` |
 | Sector shapes, borders, dividers, glow | `CampaignRadialMenu.updateGeometry -> FeatheredSector` |
-| Sector fill colour | `CampaignRadialMenu.iconHue -> IconHue.average` |
+| Sector fill colour | submenu `Slot.hue`, else `CampaignRadialMenu.iconHue -> IconHue.average` |
 | Icon and icon backdrop | `CampaignRadialMenu.drawFadedIcon` (`IconFade.MESH`), `CampaignRadialMenu.drawIconBackdrop` (`IconBackdrop.create`, `IconBackdrop.upload`) |
-| Label wrapping and fit | `CampaignRadialMenu.prepareWheel -> SectorText.width/SectorText.wrap` |
+| Label wrapping and fit | `CampaignRadialMenu.label -> SectorText.width/SectorText.wrap` |
 
 ## Registration and lifecycle
 
@@ -31,15 +33,16 @@ Technical routing for the current implementation. Code paths below are relative 
 |---|---|
 | `mod_info.json` | Mod id `radial_menu` (`RadialMenuModPlugin.MOD_ID`), LunaLib dependency, `modPlugin` `radialmenu.RadialMenuModPlugin`, jar `jars/radialmenu.jar` (packaged from `jars/release/radialmenu.jar`) |
 | `data/config/version/version_files.csv` | Registers `radialmenu.version` for Version Checker; [RELEASE.md](RELEASE.md#version-checker) |
-| `RadialMenuModPlugin.onApplicationLoad()` | Reads `RadialMenuConfig.PATH` once through `loadJSON(RadialMenuConfig.PATH, "radial_menu")`; any config error is rethrown as `IllegalStateException` and stops the game start. Then `PlayerSettings.install()` |
-| `RadialMenuModPlugin.onGameLoad()` | `PlayerSettings.reload()`, `removeListenerOfClass(CampaignRadialMenu.class)`, then `addListener(new CampaignRadialMenu(config), true)` (transient) |
-| `data/config/radial_menu.json` | Ordered `abilities` array of ability ids; `RadialMenuConfig.fromJSON` |
+| `RadialMenuModPlugin.onApplicationLoad()` | Reads `RadialMenuConfig.PATH` once through `loadJSON(RadialMenuConfig.PATH, MOD_ID)`; any config error is rethrown as `IllegalStateException` and stops the game start. Then `RadialLayout.load`, `loadTexture(RadialLayout.MOD_ICON)` and `PlayerSettings.install()` |
+| `RadialMenuModPlugin.onGameLoad()` | `PlayerSettings.reload()`, `removeListenerOfClass(CampaignRadialMenu.class)`, then `addListener(new CampaignRadialMenu(layout), true)` (transient) |
+| `data/config/radial_menu.json` | Default main wheel: an ordered `abilities` array of at most `RadialLayout.MAIN_SLOTS` ability ids; `RadialMenuConfig.fromJSON` |
+| `radial_menu_layout.json` (common data) | The edited layout, shared by every campaign; `RadialLayout.load` and `RadialLayout.set` |
 | `data/config/LunaSettings.csv` | LunaLib settings rows (one General tab, a Hotkeys header and three `Keycode` rows); ids, types and defaults mirror `config/Setting` |
 | `data/config/LunaSettingsConfig.json` | LunaLib mod-list icon: `radial_menu.iconPath` is `graphics/radialmenu/icon/small_icon_radialmenu.png` (40x40) |
 
-Load order: `onApplicationLoad -> RadialMenuConfig.fromJSON -> PlayerSettings.install` -> `onGameLoad -> PlayerSettings.reload -> removeListenerOfClass -> addListener`.
+Load order: `onApplicationLoad -> RadialMenuConfig.fromJSON -> RadialLayout.load -> loadTexture -> PlayerSettings.install` -> `onGameLoad -> PlayerSettings.reload -> removeListenerOfClass -> addListener`.
 
-One gesture: opening key down `-> CampaignRadialMenu.prepareWheel -> RadialSelection.update` (opens at the clamped mouse position) `-> renderInUICoordsAboveUIBelowTooltips` each frame `->` key up `-> RadialSelection.hoveredSector -> allowed() -> RadialAbility.press`.
+One gesture: opening key down `-> CampaignRadialMenu.buildLayer` (main wheel) `-> RadialSelection.update` (opens at the clamped mouse position) `-> trackPointer` and `renderInUICoordsAboveUIBelowTooltips` each frame `->` key up `-> RadialSelection.hoveredSector -> allowed() -> RadialAbility.press`. A dwell swaps the layer in place; an edit hold cancels the gesture and opens `SlotPicker`.
 
 ### Settings
 
@@ -70,7 +73,7 @@ Tools live in `radialmenu/tools/`, run as standalone programs with JDK 17 from t
 |---|---|
 | `radial_menu` (mod id) | Campaign Radial Menu |
 | `radialmenu` (Java package) | none |
-| Ability ids in `radial_menu.json` (`scavenge`, `sustained_burn`, `emergency_burn`, `transponder`, `go_dark` by default) | `AbilityPlugin.getSpec().getName()` |
+| Ability ids in `radial_menu.json` and the saved layout (`scavenge`, `sustained_burn`, `emergency_burn`, `transponder`, `go_dark` by default) | `SettingsAPI.getAbilitySpec(id).getName()` |
 
 `RadialMenuModPlugin.MOD_ID` is the mod id for `loadJSON` and LunaLib; it must match `mod_info.json`. Setting ids carry the `radial_menu_` prefix.
 
@@ -87,10 +90,13 @@ Runtime classes are in `radialmenu/` and `radialmenu/config/`. In `radialmenu/` 
 | File | Owner / connection |
 |---|---|
 | `radialmenu/RadialMenuModPlugin.java` | Config load and listener registration |
-| `radialmenu/RadialMenuConfig.java` | Parses and validates `radial_menu.json`; filters the configured ids to the abilities the fleet owns |
-| `radialmenu/CampaignRadialMenu.java` | The listener: input capture, gesture to action, all drawing, per-session icon caches |
-| `radialmenu/RadialSelection.java` | Gesture state (held, open, centre, start point), sector angles and hit testing; fixed `INNER_RADIUS`, `OUTER_RADIUS`, `SELECTION_LIFT` in virtual UI pixels |
-| `radialmenu/RadialAbility.java` | One owned ability (id, title); availability, active state and the single press path |
+| `radialmenu/RadialMenuConfig.java` | Parses and validates `radial_menu.json`, the default main wheel |
+| `radialmenu/RadialLayout.java` | The slot layout: load, defaults, edits and saving to common data; `MAIN_SLOTS`, `SUBMENU_SLOTS`, `MOD_ICON` |
+| `radialmenu/Slot.java` | Immutable slot: empty, an ability id, or a submenu (icon, optional hue, children) |
+| `radialmenu/SlotPicker.java` | The edit dialog for one slot |
+| `radialmenu/CampaignRadialMenu.java` | The listener: layers and their entries, input capture, dwell and edit hold, gesture to action, all drawing, per-session icon caches |
+| `radialmenu/RadialSelection.java` | Gesture state (held, open, centre, start point), layer swaps, sector angles with an offset and hit testing; fixed `INNER_RADIUS`, `OUTER_RADIUS`, `SELECTION_LIFT` in virtual UI pixels |
+| `radialmenu/RadialAbility.java` | One assigned ability (id, title); availability, active state and the single press path |
 | `radialmenu/FeatheredSector.java` | Cached quad meshes (x, y, coverage per vertex) for fill, borders, dividers, the lifted selection and glow |
 | `radialmenu/SectorText.java` | Usable label width inside a sector and word wrapping |
 | `radialmenu/IconHue.java` | Circular mean hue of an icon's visible, saturated pixels |
@@ -111,9 +117,11 @@ Runtime classes are in `radialmenu/` and `radialmenu/config/`. In `radialmenu/` 
 
 ### Gesture
 
-- Membership and sector positions are captured when an opening key goes down (`prepareWheel`) and cannot change during the gesture. Availability is checked again on release, through the current fleet's `getAbility`.
-- `RadialSelection.update` opens the wheel only if at least one configured ability is owned. A release closer than `INNER_RADIUS` to the press point selects nothing, so edge clamping cannot turn a stationary tap into a selection.
-- Sector 0 points up; the rest follow clockwise. Boundaries are half-open, so a point belongs to exactly one sector.
+- A layer's entries are captured when the wheel opens and when the layer changes (`buildLayer`), and cannot change while it is shown. Availability is checked again on release, through the current fleet's `getAbility`. Only ability entries act on release; Submenu, Back and Empty do nothing.
+- The wheel always opens on the main layer. A release closer than `INNER_RADIUS` to the press point selects nothing, so edge clamping cannot turn a stationary tap into a selection. `RadialSelection.relayer` restarts that press point at the mouse, so a new layer cannot select at once.
+- Sector 0 points up, turned by the layer's offset; the rest follow clockwise. Boundaries are half-open, so a point belongs to exactly one sector. A submenu layer has its slots plus Back at index `count / 2`; an odd count turns the layer by half a sector so Back points straight down.
+- `trackPointer` runs each input frame while the wheel is open, with a frame time from `System.nanoTime()` clamped to 0.1 s. Resting on Submenu or Back for `LAYER_DWELL` (0.25 s) swaps the layer; holding the left mouse button on any other entry for `EDIT_HOLD` (0.5 s) cancels the gesture and opens `SlotPicker`. Mouse events are consumed while the wheel is open, so the button is polled with `Mouse.isButtonDown(0)`. Pressing the button stops the dwell, so holding on a submenu edits it instead of opening it.
+- After an edit the gesture stays held, so the wheel reopens only on a fresh hotkey press.
 
 ### Rendering
 
@@ -121,13 +129,31 @@ Runtime classes are in `radialmenu/` and `radialmenu/config/`. In `radialmenu/` 
 - `renderInUICoordsAboveUIBelowTooltips` pushes `GL_ALL_ATTRIB_BITS` and pops it in `finally`. `drawMesh` reasserts blending for every mesh because stock labels change GL state.
 - All sector backgrounds are drawn before any icon or label, and all outlines and dividers after them, so neighbouring sectors cannot cover each other.
 - The cooldown fill is drawn after the glows and before the icons, only while `AbilityPlugin.showCooldownIndicator()` is true. It covers the ring from the outer edge down to `getCooldownFraction()` of its depth, where the javadoc defines 0 as the start of the cooldown and 1 as its end; `BaseAbilityPlugin` returns 1 and shows the indicator only below 1. It is drawn in immediate mode each frame (`drawBand`) because its radius changes every frame. Abilities that recharge while usable, such as Catch.Release's charged abilities, show their recharge the same way. Sources: `AbilityPlugin` (`showCooldownIndicator`, `getCooldownFraction`), `BaseAbilityPlugin.getCooldownFraction` and `showCooldownIndicator` (0.98a-RC8).
+- Empty and Back have no icon; their label is centered in the sector. The edit hold is drawn after the outlines as an arc along the outer edge, growing clockwise.
 - Icon hue and backdrop images are read once per icon with `openStream` and `ImageIO`. An unreadable icon logs a warning and the sector falls back to `Misc.getDarkPlayerColor()` with no backdrop.
 - Backdrop textures are uploaded on first draw, on the render thread, and kept in `backdropTextures` for the listener's lifetime. They are never deleted; a new listener after each game load uploads them again.
 
 ### Shared cross-file constraints
 
 - `RadialAbility.press` is the only path that uses an ability. It calls the vanilla `pressButton`, which keeps toggle behaviour, sounds, costs and confirmation dialogs; the mod adds no ability effects.
-- `RadialMenuConfig` rejects blank, non-string and duplicate ids at startup. Ids the fleet does not own are skipped silently; no list is capped.
+- `RadialMenuConfig` rejects more than `RadialLayout.MAIN_SLOTS`, blank, non-string and duplicate ids at startup. Assigned ids the fleet does not own are greyed out in their slot; an id with no ability spec shows as Empty but stays saved.
+
+### Layout
+
+- `RadialLayout` keeps `MAIN_SLOTS` (10) main slots, and each submenu `SUBMENU_SLOTS` (9) children. The wheel shows the first `CampaignRadialMenu.WHEEL_SLOTS` main slots and the first `CampaignRadialMenu.SUBMENU_SLOTS` children plus Back; hidden slots keep their contents.
+- Submenus are one layer deep: `RadialLayout.slots(..., false)` ignores a submenu inside a submenu, and `SlotPicker` offers Submenu only for main slots.
+- Saved format: `{"main": [slot, ...]}` where a slot is `{}`, `{"ability": id}` or `{"icon": sprite path, "hue": 0..1 (optional), "slots": [slot, ...]}`. A submenu with no `hue` uses its icon's colour.
+- `RadialLayout.set` saves after every edit with `writeJSONToCommon(file, json, true)`, after `load` read it with `readJSONFromCommon(file, true)`, as vanilla's `BaseSharedJSONFile` does. The game stores it as `<saves>/common/radial_menu_layout.json.data` (`StarfarerSettings`, 0.98a-RC8). It can be lost with the common folder; any read error falls back to the defaults and the next edit overwrites the file.
+- A submenu icon is a sprite path: an ability's `getIconName()` or `RadialLayout.MOD_ICON`, which `onApplicationLoad` loads with `loadTexture` because no vanilla loader does.
+
+### Slot picker
+
+- `SlotPicker.open` runs inside `processCampaignInputPreCore`: `showInteractionDialog(picker, null)` with the text and visual panels hidden, then `showCustomDialog` from `init`. Vanilla opens dialogs from the same input pass. The campaign is paused while it is open and unpaused when it closes, even if it was paused before (vanilla behaviour for every interaction dialog).
+- One object is the dialog plugin, the `CustomDialogDelegate` and the panel plugin. Button presses are queued and handled in `advance`, because they change the panel tree. Each view (ability list, then icon and colour) is a fresh child panel; vanilla keeps per-panel element bookkeeping, so a view is never reused.
+- The list offers Empty, Submenu (main slots only), then the fleet's abilities in `AbilitySpecAPI.getSortOrder()` order. A row press saves and closes. The icon and colour view saves on Confirm, keeping an existing submenu's children (`Slot.withLook`). Cancel, Escape and a right click outside save nothing; Confirm on the list view saves nothing either.
+- Icon choices are the mod icon plus every ability spec's icon from `getSortedAbilityIds()`; the game queues every ability icon for loading at startup. Icons are drawn by `IconCell.render`, which runs after the cell's checkbox.
+
+Sources (0.98a-RC8): `CampaignUIAPI.showInteractionDialog`, `InteractionDialogAPI.showCustomDialog`, `CustomDialogDelegate`; decompiled `CampaignState.showInteractionDialog` and `dialogDismissed` (pause), `SpecStore` ability loading (icons).
 
 ## Checks
 
