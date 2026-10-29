@@ -19,6 +19,7 @@ final class FeatheredSector {
     final float[] startGlow;
     final float[] endGlow;
 
+    // vertex count and order depend on the angles only, so CampaignRadialMenu blends two outer radii
     FeatheredSector(double start, double end, float inner, float outer, float screenScale) {
         float feather = 1f / screenScale; // One physical screen pixel, independent of UI scale.
         float[] radii = {inner, inner + feather, outer - feather, outer};
@@ -62,8 +63,12 @@ final class FeatheredSector {
         return vertices;
     }
 
+    static int steps(double start, double end) {
+        return Math.max(1, (int) Math.ceil((end - start) * SEGMENTS_PER_CIRCLE / (Math.PI * 2)));
+    }
+
     private static float[] arcs(double start, double end, float[] radii, float[] coverage) {
-        int steps = Math.max(1, (int) Math.ceil((end - start) * SEGMENTS_PER_CIRCLE / (Math.PI * 2)));
+        int steps = steps(start, end);
         float[] vertices = new float[(radii.length - 1) * steps * 4 * 3];
         int offset = 0;
         for (int band = 0; band < radii.length - 1; band++) {

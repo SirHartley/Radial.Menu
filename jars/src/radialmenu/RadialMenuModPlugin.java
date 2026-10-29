@@ -8,16 +8,20 @@ import radialmenu.config.PlayerSettings;
 public final class RadialMenuModPlugin extends BaseModPlugin {
     public static final String MOD_ID = "radial_menu";
 
-    private RadialMenuConfig config;
+    private RadialLayout layout;
 
     @Override
     public void onApplicationLoad() throws Exception {
+        RadialMenuConfig config;
         try {
             config = RadialMenuConfig.fromJSON(
                     Global.getSettings().loadJSON(RadialMenuConfig.PATH, MOD_ID));
         } catch (Exception failure) {
             throw new IllegalStateException("Cannot load " + RadialMenuConfig.PATH, failure);
         }
+        layout = RadialLayout.load(config.abilityIds());
+        // submenus can use the mod icon, which no vanilla loader preloads
+        Global.getSettings().loadTexture(RadialLayout.MOD_ICON);
         PlayerSettings.install();
     }
     @Override
@@ -26,6 +30,6 @@ public final class RadialMenuModPlugin extends BaseModPlugin {
         PlayerSettings.reload();
         ListenerManagerAPI listeners = Global.getSector().getListenerManager();
         listeners.removeListenerOfClass(CampaignRadialMenu.class);
-        listeners.addListener(new CampaignRadialMenu(config), true);
+        listeners.addListener(new CampaignRadialMenu(layout), true);
     }
 }

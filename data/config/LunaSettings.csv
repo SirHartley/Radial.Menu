@@ -3,3 +3,6 @@
 "radial_menu_hotkey","Hotkey","Keycode","48","","Hold this key on the campaign map to open the radial menu at the mouse. Move onto an ability and release the key to use it. To clear a key, click it and press Escape. With all three hotkeys cleared, the menu cannot open. Takes effect when you save. Default: B.","","",""
 "radial_menu_second_hotkey","Second hotkey","Keycode","29","","Another key that opens the radial menu, the same way as Hotkey. Default: L-Ctrl.","","",""
 "radial_menu_third_hotkey","Third hotkey","Keycode","157","","A third key that opens the radial menu, the same way as Hotkey. Default: R-Ctrl.","","",""
+"radial_menu_header_wheel","","Header","Wheel","","","","",""
+"radial_menu_wheel_slots","Main wheel slots","Int","5","","How many slots the main wheel shows, from 1 to 10. Slots past this number keep their abilities and come back when you raise it. Takes effect the next time you open the wheel. Default: 5.","1","10",""
+"radial_menu_submenu_slots","Submenu slots","Int","5","","How many slots each submenu shows, from 1 to 9. Every submenu also has a Back section, so it has up to 10 sections. Slots past this number keep their abilities. Default: 5.","1","9",""

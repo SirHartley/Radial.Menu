@@ -2,7 +2,7 @@ package radialmenu;
 
 import com.fs.starfarer.api.characters.AbilityPlugin;
 
-/** One owned ability, with presentation taken from the game's specification. */
+// one assigned ability, named from the game's specification; the fleet may not own it
 final class RadialAbility {
 
     final String id;

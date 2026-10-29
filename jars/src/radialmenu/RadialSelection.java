@@ -7,6 +7,7 @@ final class RadialSelection {
     static final float OUTER_RADIUS = 180f;
     static final float SELECTION_LIFT = 20f;
     private int sectors;
+    private double offset;
     private boolean held;
     private boolean open;
     private float x;
@@ -15,13 +16,25 @@ final class RadialSelection {
     private float startY;
 
     RadialSelection(int sectors) {
-        setSectors(sectors);
+        setSectors(sectors, 0);
     }
 
-    void setSectors(int sectors) {
+    // offset turns the wheel counterclockwise, in radians
+    void setSectors(int sectors, double offset) {
         if (open) throw new IllegalStateException("Cannot change sectors during a gesture");
         if (sectors < 0) throw new IllegalArgumentException("Sector count cannot be negative");
         this.sectors = sectors;
+        this.offset = offset;
+    }
+
+    // swaps the layer of an open wheel; restarting the gesture here stops the new layer selecting at once
+    void relayer(int sectors, double offset, float mouseX, float mouseY) {
+        if (!open) throw new IllegalStateException("Only an open wheel changes layers");
+        if (sectors < 1) throw new IllegalArgumentException("A layer needs at least one sector");
+        this.sectors = sectors;
+        this.offset = offset;
+        startX = mouseX;
+        startY = mouseY;
     }
 
     /** Returns the released sector, or -1 when no selection was made. */
@@ -59,7 +72,7 @@ final class RadialSelection {
         if (sectors == 0) throw new IllegalStateException("An empty wheel has no sector angles");
         return Math.PI * 2 / sectors;
     }
-    double sectorAngle(int index) { return Math.PI / 2 - index * sectorWidth(); }
+    double sectorAngle(int index) { return Math.PI / 2 + offset - index * sectorWidth(); }
 
     int hoveredSector(float mouseX, float mouseY) {
         if (sectors == 0) return -1;
@@ -72,9 +85,9 @@ final class RadialSelection {
         float distanceSquared = dx * dx + dy * dy;
         if (distanceSquared < INNER_RADIUS * INNER_RADIUS
                 || distanceSquared > (OUTER_RADIUS + SELECTION_LIFT) * (OUTER_RADIUS + SELECTION_LIFT)) return -1;
-        // Sector zero points up; the rest follow clockwise. Half-open boundaries avoid overlap.
-        double clockwise = Math.atan2(dx, dy) + sectorWidth() / 2;
-        if (clockwise < 0) clockwise += Math.PI * 2;
+        // sector 0 points up, turned by the offset; the rest follow clockwise. half-open bounds avoid overlap
+        double clockwise = Math.atan2(dx, dy) + offset + sectorWidth() / 2;
+        clockwise = (clockwise % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2);
         return (int) (clockwise / sectorWidth()) % sectors;
     }
 

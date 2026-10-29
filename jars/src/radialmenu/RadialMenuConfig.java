@@ -10,10 +10,7 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import com.fs.starfarer.api.campaign.CampaignFleetAPI;
-import com.fs.starfarer.api.characters.AbilityPlugin;
-
-/** Ordered candidate IDs. Ownership, not usability, decides which entries get a sector. */
+// default layout: ability ids for the first main wheel slots, used until the player edits the wheel
 final class RadialMenuConfig {
     static final String PATH = "data/config/radial_menu.json";
     private final List<String> abilityIds;
@@ -24,6 +21,9 @@ final class RadialMenuConfig {
 
     static RadialMenuConfig fromJSON(JSONObject json) throws JSONException {
         JSONArray entries = json.getJSONArray("abilities");
+        if (entries.length() > RadialLayout.MAIN_SLOTS) {
+            throw new IllegalArgumentException(PATH + ": at most " + RadialLayout.MAIN_SLOTS + " abilities");
+        }
         List<String> ids = new ArrayList<String>();
         Set<String> seen = new HashSet<String>();
         for (int i = 0; i < entries.length(); i++) {
@@ -40,14 +40,7 @@ final class RadialMenuConfig {
         return new RadialMenuConfig(ids);
     }
 
-    RadialAbility[] ownedAbilities(CampaignFleetAPI fleet) {
-        List<RadialAbility> owned = new ArrayList<RadialAbility>();
-        for (String id : abilityIds) {
-            AbilityPlugin ability = fleet.getAbility(id);
-            if (ability == null) continue; // Not learned, or its providing mod is not installed.
-            String title = ability.getSpec().getName();
-            owned.add(new RadialAbility(id, title));
-        }
-        return owned.toArray(new RadialAbility[owned.size()]);
+    List<String> abilityIds() {
+        return abilityIds;
     }
 }
