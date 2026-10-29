@@ -40,7 +40,10 @@ final class WheelEntry {
             return new WheelEntry(Kind.SUBMENU, index, "Submenu", null, icon, slot.hue());
         }
         AbilitySpecAPI spec = slot.abilityId() == null ? null : Global.getSettings().getAbilitySpec(slot.abilityId());
-        if (spec == null) return new WheelEntry(Kind.EMPTY, index, "Empty", null, null, null);
+        // an ability this fleet lacks, or one whose mod was removed, shows as nothing but stays in the layout
+        if (spec == null || !Global.getSector().getPlayerFleet().hasAbility(spec.getId())) {
+            return new WheelEntry(Kind.EMPTY, index, "Empty", null, null, null);
+        }
         return new WheelEntry(Kind.ABILITY, index, spec.getName(), new RadialAbility(spec.getId(), spec.getName()),
                 spec.getIconName(), null);
     }
