@@ -3,11 +3,25 @@ package radialmenu;
 /** Hold/release gesture. Coordinates and dimensions are in virtual UI pixels. */
 final class RadialSelection {
     // Fixed design dimensions, not physical screen pixels; the game handles UI scaling.
-    static final float INNER_RADIUS = 42f;
+    static final float INNER_RADIUS = 56f;
     static final float OUTER_RADIUS = 180f;
     static final float SELECTION_LIFT = 20f;
+    // constant width of the gap between neighbouring tiles
+    static final float TILE_GAP = 6f;
+    // the submenu ring starts past a lifted main tile, so the two never overlap
+    static final float CHILD_INNER_RADIUS = OUTER_RADIUS + SELECTION_LIFT + 6f;
+    static final float CHILD_OUTER_RADIUS = CHILD_INNER_RADIUS + 100f;
+    static final double CHILD_WIDTH = Math.PI * 2 / 12;
+
+    record Target(int sector, int child) {
+
+        static final Target NONE = new Target(-1, -1);
+    }
+
     private int sectors;
-    private double offset;
+    private float extent = OUTER_RADIUS + SELECTION_LIFT;
+    private int parent = -1;
+    private int children;
     private boolean held;
     private boolean open;
     private float x;
@@ -16,39 +30,42 @@ final class RadialSelection {
     private float startY;
 
     RadialSelection(int sectors) {
-        setSectors(sectors, 0);
+        setSectors(sectors, OUTER_RADIUS + SELECTION_LIFT);
     }
 
-    // offset turns the wheel counterclockwise, in radians
-    void setSectors(int sectors, double offset) {
+    // extent is the wheel's largest radius, which keeps it on screen
+    void setSectors(int sectors, float extent) {
         if (open) throw new IllegalStateException("Cannot change sectors during a gesture");
         if (sectors < 0) throw new IllegalArgumentException("Sector count cannot be negative");
         this.sectors = sectors;
-        this.offset = offset;
+        this.extent = extent;
+        retract();
     }
 
-    // swaps the layer of an open wheel; restarting the gesture here stops the new layer selecting at once
-    void relayer(int sectors, double offset, float mouseX, float mouseY) {
-        if (!open) throw new IllegalStateException("Only an open wheel changes layers");
-        if (sectors < 1) throw new IllegalArgumentException("A layer needs at least one sector");
-        this.sectors = sectors;
-        this.offset = offset;
-        startX = mouseX;
-        startY = mouseY;
+    void extend(int parent, int children) {
+        this.parent = parent;
+        this.children = children;
     }
 
-    /** Returns the released sector, or -1 when no selection was made. */
-    int update(boolean openingKeyHeld, boolean allowed, boolean cancel,
-               float mouseX, float mouseY, float width, float height) {
+    void retract() {
+        parent = -1;
+        children = 0;
+    }
+
+    int extended() { return parent; }
+
+    // true when the opening keys were released over an open wheel
+    boolean update(boolean openingKeyHeld, boolean allowed, boolean cancel,
+                   float mouseX, float mouseY, float width, float height) {
         boolean pressed = openingKeyHeld && !held;
         boolean released = !openingKeyHeld && held;
         held = openingKeyHeld;
         if (!allowed || cancel) {
             open = false;
-            return -1;
+            return false;
         }
         if (pressed) {
-            if (sectors == 0) return -1;
+            if (sectors == 0) return false;
             startX = mouseX;
             startY = mouseY;
             x = clamp(mouseX, width);
@@ -56,11 +73,10 @@ final class RadialSelection {
             open = true;
         }
         if (released && open) {
-            int selected = hoveredSector(mouseX, mouseY);
             open = false;
-            return selected;
+            return true;
         }
-        return -1;
+        return false;
     }
 
     void cancel() { open = false; }
@@ -72,27 +88,56 @@ final class RadialSelection {
         if (sectors == 0) throw new IllegalStateException("An empty wheel has no sector angles");
         return Math.PI * 2 / sectors;
     }
-    double sectorAngle(int index) { return Math.PI / 2 + offset - index * sectorWidth(); }
+    double sectorAngle(int index) { return Math.PI / 2 - index * sectorWidth(); }
 
-    int hoveredSector(float mouseX, float mouseY) {
-        if (sectors == 0) return -1;
+    // child tiles are centered on their parent sector and follow clockwise
+    double childAngle(int index) {
+        return sectorAngle(parent) + children * CHILD_WIDTH / 2 - (index + 0.5) * CHILD_WIDTH;
+    }
+
+    float distance(float mouseX, float mouseY) {
+        return (float) Math.hypot(mouseX - x, mouseY - y);
+    }
+
+    Target target(float mouseX, float mouseY) {
+        if (sectors == 0) return Target.NONE;
         // Edge clamping must not turn a stationary key tap into a selection.
         float movedX = mouseX - startX;
         float movedY = mouseY - startY;
-        if (movedX * movedX + movedY * movedY < INNER_RADIUS * INNER_RADIUS) return -1;
-        float dx = mouseX - x;
-        float dy = mouseY - y;
-        float distanceSquared = dx * dx + dy * dy;
-        if (distanceSquared < INNER_RADIUS * INNER_RADIUS
-                || distanceSquared > (OUTER_RADIUS + SELECTION_LIFT) * (OUTER_RADIUS + SELECTION_LIFT)) return -1;
-        // sector 0 points up, turned by the offset; the rest follow clockwise. half-open bounds avoid overlap
-        double clockwise = Math.atan2(dx, dy) + offset + sectorWidth() / 2;
-        clockwise = (clockwise % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2);
-        return (int) (clockwise / sectorWidth()) % sectors;
+        if (movedX * movedX + movedY * movedY < INNER_RADIUS * INNER_RADIUS) return Target.NONE;
+        float distance = distance(mouseX, mouseY);
+        if (distance < INNER_RADIUS) return Target.NONE;
+        if (children > 0 && distance >= OUTER_RADIUS) {
+            if (distance > CHILD_OUTER_RADIUS + SELECTION_LIFT) return Target.NONE;
+            int child = childAt(mouseX, mouseY);
+            return child < 0 ? Target.NONE : new Target(parent, child);
+        }
+        if (distance > OUTER_RADIUS + SELECTION_LIFT) return Target.NONE;
+        return new Target(sectorAt(mouseX, mouseY), -1);
     }
 
-    private static float clamp(float value, float extent) {
-        float margin = Math.min(OUTER_RADIUS + SELECTION_LIFT, extent / 2f);
-        return Math.max(margin, Math.min(extent - margin, value));
+    // sector 0 points up; the rest follow clockwise. half-open bounds avoid overlap
+    int sectorAt(float mouseX, float mouseY) {
+        double clockwise = clockwise(mouseX, mouseY) + sectorWidth() / 2;
+        return (int) (wrap(clockwise) / sectorWidth()) % sectors;
+    }
+
+    private int childAt(float mouseX, float mouseY) {
+        double first = parent * sectorWidth() - children * CHILD_WIDTH / 2;
+        double along = wrap(clockwise(mouseX, mouseY) - first);
+        return along < children * CHILD_WIDTH ? (int) (along / CHILD_WIDTH) : -1;
+    }
+
+    private double clockwise(float mouseX, float mouseY) {
+        return Math.atan2(mouseX - x, mouseY - y);
+    }
+
+    private static double wrap(double angle) {
+        return (angle % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2);
+    }
+
+    private float clamp(float value, float size) {
+        float margin = Math.min(extent, size / 2f);
+        return Math.max(margin, Math.min(size - margin, value));
     }
 }

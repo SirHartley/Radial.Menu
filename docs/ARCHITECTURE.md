@@ -13,9 +13,9 @@ Technical routing for the current implementation. Code paths below are relative 
 
 | Change / symptom | Route |
 |---|---|
-| What each slot holds | `RadialLayout.load` (saved layout, else `data/config/radial_menu.json -> RadialMenuConfig.fromJSON -> RadialLayout.defaults`) `-> CampaignRadialMenu.buildLayer -> CampaignRadialMenu.entry`; [Layout](#layout) |
-| Slot counts | `Setting.WHEEL_SLOTS`, `Setting.SUBMENU_SLOTS -> PlayerSettings.get -> CampaignRadialMenu.buildLayer` |
-| Submenus and Back | `CampaignRadialMenu.trackPointer` (`LAYER_DWELL`) `-> buildLayer -> RadialSelection.relayer` |
+| What each slot holds | `RadialLayout.load` (saved layout, else `data/config/radial_menu.json -> RadialMenuConfig.fromJSON -> RadialLayout.defaults`) `-> CampaignRadialMenu.openWheel` and `extend -> WheelEntry.of`; [Layout](#layout) |
+| Slot counts | `Setting.WHEEL_SLOTS`, `Setting.SUBMENU_SLOTS -> PlayerSettings.get -> CampaignRadialMenu.openWheel` and `extend` |
+| Submenu ring | `CampaignRadialMenu.updateExtension -> extend/retract -> RadialSelection.extend`, `childAngle`, `target` |
 | Editing a slot | `CampaignRadialMenu.trackPointer` (`EDIT_HOLD`) `-> edit -> SlotPicker.open -> RadialLayout.set` |
 | Hotkeys | `data/config/LunaSettings.csv -> config/PlayerSettings.reload -> CampaignRadialMenu.openingKeyHeld` (`Setting.HOTKEYS`); [Settings](#settings) |
 | Opening keys, Escape, cancel, release target | `CampaignRadialMenu.processCampaignInputPreCore -> RadialSelection.update -> RadialSelection.hoveredSector` |
@@ -23,8 +23,8 @@ Technical routing for the current implementation. Code paths below are relative 
 | Greyed-out or pulsing sector | `CampaignRadialMenu.available`, `RadialAbility.isAvailable` (`AbilityPlugin.isUsable`), `RadialAbility.isActive` (`AbilityPlugin.isActiveOrInProgress`) |
 | Cooldown fill | `CampaignRadialMenu.drawCooldown` (`AbilityPlugin.showCooldownIndicator`, `getCooldownFraction`) |
 | Wheel does not open or closes by itself | `CampaignRadialMenu.allowed`, called from input and from `renderInUICoordsAboveUIBelowTooltips` |
-| Sector shapes, borders, dividers, glow | `CampaignRadialMenu.updateGeometry -> FeatheredSector` |
-| Sector fill colour | submenu `Slot.hue`, else `CampaignRadialMenu.iconHue -> IconHue.average` |
+| Tile shapes, gaps, borders, glow | `WheelRing.updateGeometry -> FeatheredSector`, drawn by `CampaignRadialMenu.drawRing` |
+| Tile background and hover light | `CampaignRadialMenu.drawRing` (`BACKGROUND_SHADE`, `BACKGROUND_TINT`, glow faders); light colour from submenu `Slot.hue`, else `CampaignRadialMenu.iconHue -> IconHue.average` |
 | Icon and icon backdrop | `CampaignRadialMenu.drawFadedIcon` (`IconFade.MESH`), `CampaignRadialMenu.drawIconBackdrop` (`IconBackdrop.create`, `IconBackdrop.upload`) |
 | Label wrapping and fit | `CampaignRadialMenu.label -> SectorText.width/SectorText.wrap` |
 
@@ -38,18 +38,19 @@ Technical routing for the current implementation. Code paths below are relative 
 | `RadialMenuModPlugin.onGameLoad()` | `PlayerSettings.reload()`, `removeListenerOfClass(CampaignRadialMenu.class)`, then `addListener(new CampaignRadialMenu(layout), true)` (transient) |
 | `data/config/radial_menu.json` | Default main wheel: an ordered `abilities` array of at most `RadialLayout.MAIN_SLOTS` ability ids; `RadialMenuConfig.fromJSON` |
 | `radial_menu_layout.json` (common data) | The edited layout, shared by every campaign; `RadialLayout.load` and `RadialLayout.set` |
-| `data/config/LunaSettings.csv` | LunaLib settings rows (one General tab: a Hotkeys header and three `Keycode` rows, a Wheel header and two `Int` rows); ids, types and defaults mirror `config/Setting` |
+| `data/config/LunaSettings.csv` | LunaLib settings rows (one General tab: a Hotkeys header and three `Keycode` rows, a Wheel header and two `Int` rows, an Animation header and two `Boolean` rows); ids, types and defaults mirror `config/Setting` |
 | `data/config/LunaSettingsConfig.json` | LunaLib mod-list icon: `radial_menu.iconPath` is `graphics/radialmenu/icon/small_icon_radialmenu.png` (40x40) |
 
 Load order: `onApplicationLoad -> RadialMenuConfig.fromJSON -> RadialLayout.load -> loadTexture -> PlayerSettings.install` -> `onGameLoad -> PlayerSettings.reload -> removeListenerOfClass -> addListener`.
 
-One gesture: opening key down `-> CampaignRadialMenu.buildLayer` (main wheel) `-> RadialSelection.update` (opens at the clamped mouse position) `-> trackPointer` and `renderInUICoordsAboveUIBelowTooltips` each frame `->` key up `-> RadialSelection.hoveredSector -> allowed() -> RadialAbility.press`. A dwell swaps the layer in place; an edit hold cancels the gesture and opens `SlotPicker`.
+One gesture: opening key down `-> CampaignRadialMenu.openWheel -> RadialSelection.update` (opens at the clamped mouse position) `-> trackPointer` (with `updateExtension`) and `renderInUICoordsAboveUIBelowTooltips` each frame `->` key up `-> RadialSelection.target -> allowed() -> RadialAbility.press`. An edit hold cancels the gesture and opens `SlotPicker`.
 
 ### Settings
 
 `config/Setting` owns ids and defaults. `data/config/LunaSettings.csv` supplies the rows and owns the setting names and help text (`fieldName`, `fieldDescription`); it must match `Setting` on ids, types and defaults. `config/PlayerSettings` installs a `LunaSettingsListener` on application start, reloads on every LunaLib save and on game load, and caches sanitized values. Runtime callers read `PlayerSettings.get`, never LunaLib each frame.
 
 - A hotkey is a LunaLib `Keycode`: an LWJGL key code, `0` when the player clears it with Escape. `Setting.sanitize` maps a missing or out-of-range value to the default.
+- `Setting.LIFT` and `Setting.NO_ANIMATION` are LunaLib `Boolean` rows, read with `LunaSettings.getBoolean` and cached as 0 or 1; `PlayerSettings.enabled` reads them.
 - The slot counts are LunaLib `Int` rows; `Setting.sanitize` clamps them to their bounds. `RadialLayout.MAIN_SLOTS` and `SUBMENU_SLOTS` are those settings' maximums, so the stored layout always covers the largest wheel.
 - `PlayerSettings.reload` reads through `LunaSettings.getInt`, which loads LunaLib's settings on first use.
 - LunaLib does not call listeners for settings saved during new-game setup (`if (!newGame) LunaSettings.reportSettingsChanged(mod)`), so `onGameLoad` reloads.
@@ -66,7 +67,7 @@ Tools live in `radialmenu/tools/`, run as standalone programs with JDK 17 from t
 |---|---|
 | `tools/ReleaseBuild.java` | `build <starsector-core>`: compiles `jars/src` into `jars/release/radialmenu.jar`; `package [tag]`: writes the ZIP, notes and stamped version file to `out/release/`. Reads `libs/` and the game jars, never writes to the game. [RELEASE.md](RELEASE.md) |
 | `tools/ReleaseBuildChecks.java` | Headless checks of changelog parsing, version stamping and the package file filter |
-| `tools/PlayerSettingsChecks.java` | Checks `data/config/LunaSettings.csv` against `config/Setting`: columns, `radial_menu_` prefix, unique ids, a `Setting` for every row, `Keycode` or `Int` type, defaults, `Int` bounds, help text, escaped `%`, keycode sanitizing and count clamping. Run from the repository root after the compile gate: `java -cp <classes>:<compile jars> radialmenu.tools.PlayerSettingsChecks` |
+| `tools/PlayerSettingsChecks.java` | Checks `data/config/LunaSettings.csv` against `config/Setting`: columns, `radial_menu_` prefix, unique ids, a `Setting` for every row, `Keycode`, `Int` or `Boolean` type, defaults, `Int` bounds, help text, escaped `%`, keycode sanitizing and count clamping. Run from the repository root after the compile gate: `java -cp <classes>:<compile jars> radialmenu.tools.PlayerSettingsChecks` |
 | `.github/workflows/release.yml` | Runs the checks and a preview package on every push and PR; publishes on a version tag |
 
 ## Data identity
@@ -75,7 +76,7 @@ Tools live in `radialmenu/tools/`, run as standalone programs with JDK 17 from t
 |---|---|
 | `radial_menu` (mod id) | Campaign Radial Menu |
 | `radialmenu` (Java package) | none |
-| Ability ids in `radial_menu.json` and the saved layout (`scavenge`, `sustained_burn`, `emergency_burn`, `transponder`, `go_dark` by default) | `SettingsAPI.getAbilitySpec(id).getName()` |
+| Ability ids in `radial_menu.json` and the saved layout (`scavenge`, `sustained_burn`, `emergency_burn`, `transponder`, `go_dark`, `sensor_burst`, `interdiction_pulse` by default) | `SettingsAPI.getAbilitySpec(id).getName()` |
 
 `RadialMenuModPlugin.MOD_ID` is the mod id for `loadJSON` and LunaLib; it must match `mod_info.json`. Setting ids carry the `radial_menu_` prefix.
 
@@ -86,6 +87,8 @@ Tools live in `radialmenu/tools/`, run as standalone programs with JDK 17 from t
 | `radial_menu_third_hotkey` | Third hotkey |
 | `radial_menu_wheel_slots` | Main wheel slots |
 | `radial_menu_submenu_slots` | Submenu slots |
+| `radial_menu_lift` | Lift the hovered tile |
+| `radial_menu_no_animation` | No animations |
 
 ## Source owners
 
@@ -98,14 +101,16 @@ Runtime classes are in `radialmenu/` and `radialmenu/config/`. In `radialmenu/` 
 | `radialmenu/RadialLayout.java` | The slot layout: load, defaults, edits and saving to common data; `MAIN_SLOTS`, `SUBMENU_SLOTS`, `MOD_ICON` |
 | `radialmenu/Slot.java` | Immutable slot: empty, an ability id, or a submenu (icon, optional hue, children) |
 | `radialmenu/SlotPicker.java` | The edit dialog for one slot |
-| `radialmenu/CampaignRadialMenu.java` | The listener: layers and their entries, input capture, dwell and edit hold, gesture to action, all drawing, per-session icon caches |
-| `radialmenu/RadialSelection.java` | Gesture state (held, open, centre, start point), layer swaps, sector angles with an offset and hit testing; fixed `INNER_RADIUS`, `OUTER_RADIUS`, `SELECTION_LIFT` in virtual UI pixels |
+| `radialmenu/CampaignRadialMenu.java` | The listener: building the main and submenu rings, input capture, submenu extension and edit hold, gesture to action, all drawing, per-session icon caches |
+| `radialmenu/RadialSelection.java` | Gesture state (held, open, centre, start point, extended submenu), sector and child angles and hit testing (`target`); fixed `INNER_RADIUS`, `OUTER_RADIUS`, `SELECTION_LIFT`, `CHILD_INNER_RADIUS`, `CHILD_OUTER_RADIUS` in virtual UI pixels and `CHILD_WIDTH` |
+| `radialmenu/WheelRing.java` | One ring as shown: entries, angles, radii, its cached base, lifted and (submenu only) collapsed meshes, and lift faders |
+| `radialmenu/WheelEntry.java` | One tile as shown (ability, submenu or empty), built from a `Slot` |
 | `radialmenu/RadialAbility.java` | One assigned ability (id, title); availability, active state and the single press path |
-| `radialmenu/FeatheredSector.java` | Cached quad meshes (x, y, coverage per vertex) for fill, borders, dividers, the lifted selection and glow |
+| `radialmenu/FeatheredSector.java` | Cached quad meshes (x, y, coverage per vertex) for one closed tile: fill with feathered edges, vanilla's double border (`edge`, `innerEdge`) and glow |
 | `radialmenu/SectorText.java` | Usable label width inside a sector and word wrapping |
 | `radialmenu/IconHue.java` | Circular mean hue of an icon's visible, saturated pixels |
 | `radialmenu/IconFade.java` | Static mesh fading an icon's edges |
-| `radialmenu/config/Setting.java` | Setting ids, defaults, bounds and sanitizing; `HOTKEYS` lists the keys that open the wheel |
+| `radialmenu/config/Setting.java` | Setting ids, types, defaults, bounds and sanitizing; `HOTKEYS` lists the keys that open the wheel |
 | `radialmenu/config/PlayerSettings.java` | LunaLib listener and the cached values |
 | `radialmenu/IconBackdrop.java` | 2x bicubic copy of an icon with radial opacity falloff, and its GL texture upload |
 
@@ -121,20 +126,26 @@ Runtime classes are in `radialmenu/` and `radialmenu/config/`. In `radialmenu/` 
 
 ### Gesture
 
-- A layer's entries are captured when the wheel opens and when the layer changes (`buildLayer`), and cannot change while it is shown. Availability is checked again on release, through the current fleet's `getAbility`. Only ability entries act on release; Submenu, Back and Empty do nothing.
-- The wheel always opens on the main layer. A release closer than `INNER_RADIUS` to the press point selects nothing, so edge clamping cannot turn a stationary tap into a selection. `RadialSelection.relayer` restarts that press point at the mouse, so a new layer cannot select at once.
-- Sector 0 points up, turned by the layer's offset; the rest follow clockwise. Boundaries are half-open, so a point belongs to exactly one sector. A submenu layer has its slots plus Back at index `count / 2`; an odd count turns the layer by half a sector so Back points straight down.
-- `trackPointer` runs each input frame while the wheel is open, with a frame time from `System.nanoTime()` clamped to 0.1 s. Resting on Submenu or Back for `LAYER_DWELL` (0.25 s) swaps the layer; holding the left mouse button on any other entry for `EDIT_HOLD` (0.5 s) cancels the gesture and opens `SlotPicker`. Mouse events are consumed while the wheel is open, so the button is polled with `Mouse.isButtonDown(0)`. Pressing the button stops the dwell, so holding on a submenu edits it instead of opening it.
+- A ring's entries are captured when it is built (`openWheel` for the main ring, `extend` for a submenu) and cannot change while it is shown. Availability is checked again on release, through the current fleet's `getAbility`. Only ability entries act on release; Submenu and Empty do nothing.
+- The centre hole is `INNER_RADIUS` (56 px); the pointer inside it cancels a release and closes an open submenu. A release closer than `INNER_RADIUS` to the press point also selects nothing, so edge clamping cannot turn a stationary tap into a selection.
+- Sector 0 points up; the rest follow clockwise. Boundaries are half-open, so a point belongs to exactly one sector. Submenu tiles are `CHILD_WIDTH` (30 degrees) wide, centered on their parent sector, clockwise.
+- `updateExtension` opens a submenu as soon as `target` lands on its main tile. While one is open, the pointer inside `INNER_RADIUS` closes it, the main band (`INNER_RADIUS` to `OUTER_RADIUS`) closes it on any other main tile (opening that one if it is a submenu), and anything farther out keeps it open, so a diagonal move toward a far child tile cannot cross a neighbour's tile and close it. Past `OUTER_RADIUS`, `target` returns a child by angle or nothing outside the arc.
+- The submenu ring starts at `CHILD_INNER_RADIUS`, past a lifted main tile. When any shown main slot is a submenu, the wheel is clamped on screen by `CHILD_OUTER_RADIUS + SELECTION_LIFT` instead of the main ring's lifted radius.
+- `trackPointer` runs each input frame while the wheel is open, with a frame time from `System.nanoTime()` clamped to 0.1 s. Holding the left mouse button on any tile for `EDIT_HOLD` (0.5 s) cancels the gesture and opens `SlotPicker`; on a child tile it edits that submenu slot. Mouse events are consumed while the wheel is open, so the button is polled with `Mouse.isButtonDown(0)`.
 - After an edit the gesture stays held, so the wheel reopens only on a fresh hotkey press.
 
 ### Rendering
 
-- Coordinates are virtual UI pixels. `FeatheredSector` meshes are rebuilt only when `getScreenScaleMult()` changes.
+- Coordinates are virtual UI pixels. `FeatheredSector` meshes are rebuilt only when `getScreenScaleMult()` changes (`WheelRing.updateGeometry`).
+- Tile background is black at `BACKGROUND_SHADE` (0.4) under `Misc.getDarkPlayerColor()` at `BACKGROUND_TINT` (0.8) of its own alpha. That colour is vanilla's dark UI colour, `darkUIColor` in `player.faction` and `buttonBgDark` in `settings.json`, (31,94,112,175). The hovered available tile, and an open submenu's parent, light up with vanilla's button hover: an additive wash of the tile's colour moving toward white, at `glow * 0.5 * min(1, (175 + 50) / 255)`, plus the icon drawn again additively at `glow * 0.33`. The tile colour is the icon hue at saturation 0.55 and full brightness (`Misc.getBasePlayerColor()` without one); the active pulse and the cooldown fill use it too. Each tile has a glow `FaderUtil` with vanilla's button timing (`GLOW_IN` 0.05 s, `GLOW_OUT` 0.25 s). Sources: `settings.json` and `player.faction` (0.98a-RC8); the text-button renderer and the ability icon widget, translated from decompiled code.
+- Both rings go through `drawRing`. The open submenu's parent stays lit and lifted while the pointer is on its children. A submenu extends with a `FaderUtil` (`EXTEND_IN` 0.1 s, `EXTEND_OUT` 0.08 s, smoothstep) that grows its tiles out of `CHILD_INNER_RADIUS` and fades them in; a closing submenu keeps drawing until it has faded, but cannot be selected.
 - `renderInUICoordsAboveUIBelowTooltips` pushes `GL_ALL_ATTRIB_BITS` and pops it in `finally`. `drawMesh` reasserts blending for every mesh because stock labels change GL state.
-- All sector backgrounds are drawn before any icon or label, and all outlines and dividers after them, so neighbouring sectors cannot cover each other.
+- All tile backgrounds are drawn before any icon or label, and all outlines after them, so neighbouring tiles cannot cover each other.
+- Every tile is closed. Its straight sides run parallel to its boundary rays, `RadialSelection.TILE_GAP / 2` (3 px) inside them, so the gap between neighbours keeps one width at every radius; arcs stop where they meet the sides (`asin(side / radius)`). No border is shared, and a lifted tile needs no extra sides.
+- Borders follow vanilla's ability slot: a 1-unit line in `Misc.getBasePlayerColor()` at full alpha with 3-unit chamfered corners, and a second line 1 unit inside it at half alpha with 2-unit chamfers. A disabled tile keeps its border; its icon dims and its label greys instead. `FeatheredSector.corners` builds each line's closed path and `stroke` turns it into a strip feathered by one physical pixel. Source: the ability bar slot's render and its border helper, translated from decompiled code (0.98a-RC8). Hit testing ignores the gaps: a point in a gap belongs to the sector its angle falls in.
 - The cooldown fill is drawn after the glows and before the icons, only while `AbilityPlugin.showCooldownIndicator()` is true. It covers the ring from the outer edge down to `getCooldownFraction()` of its depth, where the javadoc defines 0 as the start of the cooldown and 1 as its end; `BaseAbilityPlugin` returns 1 and shows the indicator only below 1. It is drawn in immediate mode each frame (`drawBand`) because its radius changes every frame. Abilities that recharge while usable, such as Catch.Release's charged abilities, show their recharge the same way. Sources: `AbilityPlugin` (`showCooldownIndicator`, `getCooldownFraction`), `BaseAbilityPlugin.getCooldownFraction` and `showCooldownIndicator` (0.98a-RC8).
-- The hovered available sector lifts with one `FaderUtil` per sector (`LIFT_IN` 0.1 s out, `LIFT_OUT` 0.25 s back, eased with smoothstep). `lift` clocks it with `System.nanoTime()`, clamped to 0.1 s, because the render callback has no frame time and runs while the campaign is paused. `drawMesh(base, lifted, t, color)` blends the cached base and lifted meshes vertex by vertex, which needs `FeatheredSector` to keep its vertex count and order independent of the outer radius. Icons, backdrops and labels move out by half the lift; the cooldown fill and the edit arc use the blended outer radius. Each lifted sector draws its own side extensions while it is above the base. Hit testing keeps the full lifted radius, so the edge does not flicker. Faders restart when a layer is built.
-- Empty and Back have no icon; their label is centered in the sector. The edit hold is drawn after the outlines as an arc along the outer edge, growing clockwise.
+- The hovered available sector lifts with one `FaderUtil` per sector (`LIFT_IN` 0.08 s out, `LIFT_OUT` 0.15 s back, eased with smoothstep) while `Setting.LIFT` is on. With `Setting.NO_ANIMATION` both kinds of fader get zero durations, so `FaderUtil` jumps to its target, and the active glow stays at half its pulse. Settings are read when the wheel opens. `renderTime` clocks the faders with `System.nanoTime()`, clamped to 0.1 s, because the render callback has no frame time and runs while the campaign is paused. `drawMesh` blends the cached collapsed, base and lifted meshes vertex by vertex, which needs `FeatheredSector` to keep its vertex count and order independent of the outer radius. Icons, backdrops and labels move out by half the lift; the cooldown fill and the edit arc use the blended outer radius. Hit testing keeps the full lifted radius, so the edge does not flicker. Faders restart when a ring is built.
+- Empty has no icon; its label is centered in the tile. The edit hold is drawn after the outlines as an arc along the outer edge, growing clockwise.
 - Icon hue and backdrop images are read once per icon with `openStream` and `ImageIO`. An unreadable icon logs a warning and the sector falls back to `Misc.getDarkPlayerColor()` with no backdrop.
 - Backdrop textures are uploaded on first draw, on the render thread, and kept in `backdropTextures` for the listener's lifetime. They are never deleted; a new listener after each game load uploads them again.
 
@@ -145,7 +156,7 @@ Runtime classes are in `radialmenu/` and `radialmenu/config/`. In `radialmenu/` 
 
 ### Layout
 
-- `RadialLayout` keeps `MAIN_SLOTS` (10) main slots, and each submenu `SUBMENU_SLOTS` (9) children. The wheel shows the first `Setting.WHEEL_SLOTS` main slots and the first `Setting.SUBMENU_SLOTS` children plus Back, read when a layer is built; hidden slots keep their contents.
+- `RadialLayout` keeps `MAIN_SLOTS` (10) main slots, and each submenu `SUBMENU_SLOTS` (10) children. The wheel shows the first `Setting.WHEEL_SLOTS` main slots and the first `Setting.SUBMENU_SLOTS` children, read when a ring is built; hidden slots keep their contents.
 - Submenus are one layer deep: `RadialLayout.slots(..., false)` ignores a submenu inside a submenu, and `SlotPicker` offers Submenu only for main slots.
 - Saved format: `{"main": [slot, ...]}` where a slot is `{}`, `{"ability": id}` or `{"icon": sprite path, "hue": 0..1 (optional), "slots": [slot, ...]}`. A submenu with no `hue` uses its icon's colour.
 - `RadialLayout.set` saves after every edit with `writeJSONToCommon(file, json, true)`, after `load` read it with `readJSONFromCommon(file, true)`, as vanilla's `BaseSharedJSONFile` does. The game stores it as `<saves>/common/radial_menu_layout.json.data` (`StarfarerSettings`, 0.98a-RC8). It can be lost with the common folder; any read error falls back to the defaults and the next edit overwrites the file.
