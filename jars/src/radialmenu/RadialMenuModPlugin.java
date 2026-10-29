@@ -4,6 +4,9 @@ import com.fs.starfarer.api.BaseModPlugin;
 import com.fs.starfarer.api.Global;
 import com.fs.starfarer.api.campaign.listeners.ListenerManagerAPI;
 import radialmenu.config.PlayerSettings;
+import radialmenu.config.RadialMenuConfig;
+import radialmenu.layout.RadialLayout;
+import radialmenu.wheel.CampaignRadialMenu;
 
 public final class RadialMenuModPlugin extends BaseModPlugin {
     public static final String MOD_ID = "radial_menu";

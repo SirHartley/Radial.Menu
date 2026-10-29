@@ -1,13 +1,13 @@
-package radialmenu;
+package radialmenu.render;
 
 import java.awt.Color;
 import java.awt.image.BufferedImage;
 
 /** Circular mean of the visible, moderately saturated pixels in an ability icon. */
-final class IconHue {
+public final class IconHue {
     private IconHue() { }
 
-    static Float average(BufferedImage image) {
+    public static Float average(BufferedImage image) {
         double x = 0, y = 0;
         int count = 0;
         float[] hsb = new float[3];
@@ -27,5 +27,10 @@ final class IconHue {
         if (count == 0 || Math.hypot(x, y) < count * 1e-6) return null;
         double hue = Math.atan2(y, x) / (Math.PI * 2);
         return (float) (hue < 0 ? hue + 1 : hue);
+    }
+
+    // the colour a tile with this hue lights up in
+    public static Color tileColor(float hue) {
+        return Color.getHSBColor(hue, 0.55f, 1f);
     }
 }

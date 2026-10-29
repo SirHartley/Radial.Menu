@@ -1,4 +1,4 @@
-package radialmenu;
+package radialmenu.wheel;
 
 /** Hold/release gesture. Coordinates and dimensions are in virtual UI pixels. */
 final class RadialSelection {

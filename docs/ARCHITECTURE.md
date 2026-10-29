@@ -100,28 +100,29 @@ Tools live in `radialmenu/tools/`, run as standalone programs with JDK 17 from t
 
 ## Source owners
 
-Runtime classes are in `radialmenu/` and `radialmenu/config/`. In `radialmenu/` all but `RadialMenuModPlugin` and `CampaignRadialMenu` are package-private; `config/` is public so tools can read it.
+Runtime classes are in `radialmenu/` and four packages under it, one per responsibility. Dependencies run one way: `wheel` uses `layout`, `render` and `config`; `layout` uses `render` and `config`; `render` uses no other mod package, and `config` only reads `RadialMenuModPlugin.MOD_ID`. A class or member is public only when another package uses it; `config/` is public so tools can read it. `tools/` never ships.
 
 | File | Owner / connection |
 |---|---|
 | `radialmenu/RadialMenuModPlugin.java` | Config load and listener registration |
-| `radialmenu/RadialMenuConfig.java` | Parses and validates `radial_menu.json`, the default main wheel |
-| `radialmenu/RadialLayout.java` | The slot layout: load, defaults, edits and saving to common data; `MAIN_SLOTS`, `SUBMENU_SLOTS`, `MOD_ICON` |
-| `radialmenu/Slot.java` | Immutable slot: empty, an ability id, or a submenu (icon, optional hue, children) |
-| `radialmenu/SlotPicker.java` | The edit dialog for one slot |
-| `radialmenu/CampaignRadialMenu.java` | The listener: building the main and submenu rings, input capture, submenu extension and edit hold, gesture to action, all drawing, per-session icon caches |
-| `radialmenu/RadialSelection.java` | Gesture state (held, open, centre, start point, extended submenu), sector and child angles and hit testing (`target`); fixed `INNER_RADIUS`, `OUTER_RADIUS`, `SELECTION_LIFT`, `CHILD_INNER_RADIUS`, `CHILD_OUTER_RADIUS` in virtual UI pixels and `CHILD_WIDTH` |
-| `radialmenu/WheelRing.java` | One ring as shown: entries, angles, radii, its cached base, lifted and (submenu only) collapsed meshes, and lift faders |
-| `radialmenu/WheelEntry.java` | One tile as shown (ability, submenu or empty), built from a `Slot` |
-| `radialmenu/RadialAbility.java` | One assigned ability (id, title); availability, active state and the single press path |
-| `radialmenu/FeatheredSector.java` | Cached quad meshes (x, y, coverage per vertex) for one closed tile: fill with feathered edges, vanilla's double border (`edge`, `innerEdge`) and glow |
-| `radialmenu/SectorText.java` | Usable label width inside a sector and word wrapping |
-| `radialmenu/IconHue.java` | Circular mean hue of an icon's visible, saturated pixels |
-| `radialmenu/IconFade.java` | Static mesh fading an icon's edges |
 | `radialmenu/config/Setting.java` | Setting ids, types, defaults, bounds and sanitizing; `HOTKEYS` lists the keys that open the wheel |
 | `radialmenu/config/PlayerSettings.java` | LunaLib listener and the cached values |
-| `radialmenu/IconBackdrop.java` | 2x bicubic copy of an icon with radial opacity falloff, and its GL texture upload |
-| `radialmenu/AbilityTooltip.java` | The hovered ability's own tooltip in vanilla's tooltip frame, beside the wheel |
+| `radialmenu/config/RadialMenuConfig.java` | Parses and validates `radial_menu.json`, the default main wheel |
+| `radialmenu/layout/RadialLayout.java` | The slot layout: load, defaults, edits and saving to common data; `MAIN_SLOTS`, `SUBMENU_SLOTS`, `MOD_ICON` |
+| `radialmenu/layout/Slot.java` | Immutable slot: empty, an ability id, or a submenu (icon, optional hue, children) |
+| `radialmenu/layout/SlotPicker.java` | The edit dialog for one slot |
+| `radialmenu/wheel/CampaignRadialMenu.java` | The listener: building the main and submenu rings, input capture, submenu extension and edit hold, gesture to action, all drawing, per-session icon caches |
+| `radialmenu/wheel/RadialSelection.java` | Gesture state (held, open, centre, start point, extended submenu), sector and child angles and hit testing (`target`); fixed `INNER_RADIUS`, `OUTER_RADIUS`, `SELECTION_LIFT`, `CHILD_INNER_RADIUS`, `CHILD_OUTER_RADIUS` in virtual UI pixels and `CHILD_WIDTH` |
+| `radialmenu/wheel/WheelRing.java` | One ring as shown: entries, angles, radii, its cached base, lifted and (submenu only) collapsed meshes, and lift faders |
+| `radialmenu/wheel/WheelEntry.java` | One tile as shown (ability, submenu or empty), built from a `Slot` |
+| `radialmenu/wheel/RadialAbility.java` | One assigned ability (id, title); availability, active state and the single press path |
+| `radialmenu/render/FeatheredSector.java` | Cached quad meshes (x, y, coverage per vertex) for one closed tile: fill with feathered edges, vanilla's double border (`edge`, `innerEdge`) and glow |
+| `radialmenu/render/SectorText.java` | Usable label width inside a sector and word wrapping |
+| `radialmenu/render/IconHue.java` | Circular mean hue of an icon's visible, saturated pixels, and the tile colour for a hue (`tileColor`) |
+| `radialmenu/render/IconFade.java` | Static mesh fading an icon's edges |
+| `radialmenu/render/IconBackdrop.java` | 2x bicubic copy of an icon with radial opacity falloff, and its GL texture upload |
+| `radialmenu/render/AbilityTooltip.java` | The hovered ability's own tooltip in vanilla's tooltip frame, beside the wheel |
+| `radialmenu/tools/` | Release builder and headless checks; see [Build and release tools](#build-and-release-tools) |
 
 ## Contracts
 
@@ -148,7 +149,7 @@ Runtime classes are in `radialmenu/` and `radialmenu/config/`. In `radialmenu/` 
 ### Rendering
 
 - Coordinates are virtual UI pixels. `FeatheredSector` meshes are rebuilt only when `getScreenScaleMult()` changes (`WheelRing.updateGeometry`).
-- Tile background is black at `BACKGROUND_SHADE` (0.3) under `Misc.getDarkPlayerColor()` at `BACKGROUND_TINT` (0.65) of its own alpha, about 61% opaque together. The icon backdrops are drawn on top at full strength and do not change with it. That colour is vanilla's dark UI colour, `darkUIColor` in `player.faction` and `buttonBgDark` in `settings.json`, (31,94,112,175). The hovered available tile, and an open submenu's parent, light up with vanilla's button hover: an additive wash of the tile's colour moving toward white, at `glow * 0.5 * min(1, (175 + 50) / 255)`, plus the icon drawn again additively at `glow * 0.33`. The tile colour (`hueColor`) is the icon hue at saturation 0.55 and full brightness (`Misc.getBasePlayerColor()` without one); the active pulse and the cooldown fill use it too. With `Setting.TINTED_TILES` on (read when the wheel opens), an available tile with a hue draws its background in `restTint` instead: the dark UI colour moved `REST_TINT` (0.7) of the way toward the colour with its saturation and brightness in the tile's hue, cached per entry as `WheelEntry.tint`. Empty and unavailable tiles keep the plain background, and the hover wash goes on top unchanged, so the hovered tile stays the brightest. Each tile has a glow `FaderUtil` with vanilla's button timing (`GLOW_IN` 0.05 s, `GLOW_OUT` 0.25 s). Sources: `settings.json` and `player.faction` (0.98a-RC8); the text-button renderer and the ability icon widget, translated from decompiled code.
+- Tile background is black at `BACKGROUND_SHADE` (0.3) under `Misc.getDarkPlayerColor()` at `BACKGROUND_TINT` (0.65) of its own alpha, about 61% opaque together. The icon backdrops are drawn on top at full strength and do not change with it. That colour is vanilla's dark UI colour, `darkUIColor` in `player.faction` and `buttonBgDark` in `settings.json`, (31,94,112,175). The hovered available tile, and an open submenu's parent, light up with vanilla's button hover: an additive wash of the tile's colour moving toward white, at `glow * 0.5 * min(1, (175 + 50) / 255)`, plus the icon drawn again additively at `glow * 0.33`. The tile colour (`IconHue.tileColor`) is the icon hue at saturation 0.55 and full brightness (`Misc.getBasePlayerColor()` without one); the active pulse and the cooldown fill use it too. With `Setting.TINTED_TILES` on (read when the wheel opens), an available tile with a hue draws its background in `restTint` instead: the dark UI colour moved `REST_TINT` (0.7) of the way toward the colour with its saturation and brightness in the tile's hue, cached per entry as `WheelEntry.tint`. Empty and unavailable tiles keep the plain background, and the hover wash goes on top unchanged, so the hovered tile stays the brightest. Each tile has a glow `FaderUtil` with vanilla's button timing (`GLOW_IN` 0.05 s, `GLOW_OUT` 0.25 s). Sources: `settings.json` and `player.faction` (0.98a-RC8); the text-button renderer and the ability icon widget, translated from decompiled code.
 - Both rings go through `drawRing`. The open submenu's parent stays lit and lifted while the pointer is on its children. A submenu extends with a `FaderUtil` (`EXTEND_IN` 0.1 s, `EXTEND_OUT` 0.08 s, smoothstep) that grows its tiles out of `CHILD_INNER_RADIUS` and fades them in; a closing submenu keeps drawing until it has faded, but cannot be selected.
 - `renderInUICoordsAboveUIBelowTooltips` pushes `GL_ALL_ATTRIB_BITS` and pops it in `finally`. `drawMesh` reasserts blending for every mesh because stock labels change GL state.
 - All tile backgrounds are drawn before any icon or label, and all outlines after them, so neighbouring tiles cannot cover each other.
@@ -189,7 +190,7 @@ Sources (0.98a-RC8, decompiled): the ability bar slot's `createAbilityTooltip`, 
 - `SlotPicker.open` runs inside `processCampaignInputPreCore`: `showInteractionDialog(picker, null)` with the text and visual panels hidden, then `showCustomDialog` from `init`. Vanilla opens dialogs from the same input pass. The campaign is paused while it is open and unpaused when it closes, even if it was paused before (vanilla behaviour for every interaction dialog).
 - One object is the dialog plugin, the `CustomDialogDelegate` and the panel plugin. Button presses are queued and handled in `advance`, because they change the panel tree. Each view (ability list, then icon and colour) is a fresh child panel; vanilla keeps per-panel element bookkeeping, so a view is never reused.
 - The list offers Empty, Submenu (main slots only), then the fleet's abilities in `AbilitySpecAPI.getSortOrder()` order. A row press saves and closes. The icon and colour view saves on Confirm, keeping an existing submenu's children (`Slot.withLook`). Cancel, Escape and a right click outside save nothing; Confirm on the list view saves nothing either.
-- Icon choices are the mod icon plus every ability spec's icon from `getSortedAbilityIds()`; the game queues every ability icon for loading at startup. Each icon or colour is an area checkbox in its own cell panel; `IconCell.render` runs after the checkbox and draws the sprite, or for a colour a filled quad in `CampaignRadialMenu.hueColor`, the colour the wheel uses, both inset `INSET` (4) units. `TooltipMakerAPI.addCustom` shifts a tooltip's first element 5 units right, so `cell` resets the box's `setXAlignOffset` to 0 to keep it under the sprite, as vanilla does for a section heading in `BaseEventIntel`.
+- Icon choices are the mod icon plus every ability spec's icon from `getSortedAbilityIds()`; the game queues every ability icon for loading at startup. Each icon or colour is an area checkbox in its own cell panel; `IconCell.render` runs after the checkbox and draws the sprite, or for a colour a filled quad in `IconHue.tileColor`, the colour the wheel uses, both inset `INSET` (4) units. `TooltipMakerAPI.addCustom` shifts a tooltip's first element 5 units right, so `cell` resets the box's `setXAlignOffset` to 0 to keep it under the sprite, as vanilla does for a section heading in `BaseEventIntel`.
 
 Sources (0.98a-RC8): `CampaignUIAPI.showInteractionDialog`, `InteractionDialogAPI.showCustomDialog`, `CustomDialogDelegate`; decompiled `CampaignState.showInteractionDialog` and `dialogDismissed` (pause), `SpecStore` ability loading (icons), `StandardTooltipV2Expandable.addCustom` (first element offset).
 

@@ -1,4 +1,4 @@
-package radialmenu;
+package radialmenu.render;
 
 import java.awt.Color;
 
@@ -15,10 +15,10 @@ import org.lwjgl.opengl.GL11;
 
 // vanilla's ability bar tooltip, rebuilt off the ui tree every frame as vanilla does; an api tooltip maker has
 // no border or background, so the frame is drawn here from vanilla's sprites and numbers
-final class AbilityTooltip {
+public final class AbilityTooltip {
 
     // vanilla's default hover delay; the player's own setting is not in the api
-    static final float DELAY = 0.3f;
+    public static final float DELAY = 0.3f;
     private static final float PAD = 7f;
     private static final float BACKGROUND_ALPHA = 0.85f;
     private static final float GAP = 10f;
@@ -34,7 +34,7 @@ final class AbilityTooltip {
     private LabelAPI footer;
 
     // left and right are the wheel's outer edges; the tooltip sits beside them, centred on y where it fits
-    void render(AbilityPlugin ability, boolean expanded, float left, float right, float y, boolean rightSide) {
+    public void render(AbilityPlugin ability, boolean expanded, float left, float right, float y, boolean rightSide) {
         // createUIElement takes 10 off its width, vanilla's own tooltip uses the ability's width as is
         float width = ability.getTooltipWidth() + 10f;
         CustomPanelAPI panel = Global.getSettings().createCustom(width, 0f, null);

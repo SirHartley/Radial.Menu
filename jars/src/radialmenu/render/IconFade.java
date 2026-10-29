@@ -1,8 +1,8 @@
-package radialmenu;
+package radialmenu.render;
 
 /** Normalized icon mesh: the central 75% stays opaque and the border fades out. */
-final class IconFade {
-    static final float[] MESH = createMesh();
+public final class IconFade {
+    public static final float[] MESH = createMesh();
 
     private IconFade() { }
 

@@ -1,4 +1,4 @@
-package radialmenu;
+package radialmenu.wheel;
 
 import java.awt.Color;
 import java.awt.image.BufferedImage;
@@ -28,10 +28,18 @@ import org.lwjgl.input.Keyboard;
 import org.lwjgl.input.Mouse;
 import org.lwjgl.opengl.Display;
 import org.lwjgl.opengl.GL11;
-import radialmenu.RadialSelection.Target;
-import radialmenu.WheelEntry.Kind;
 import radialmenu.config.PlayerSettings;
 import radialmenu.config.Setting;
+import radialmenu.layout.RadialLayout;
+import radialmenu.layout.SlotPicker;
+import radialmenu.render.AbilityTooltip;
+import radialmenu.render.FeatheredSector;
+import radialmenu.render.IconBackdrop;
+import radialmenu.render.IconFade;
+import radialmenu.render.IconHue;
+import radialmenu.render.SectorText;
+import radialmenu.wheel.RadialSelection.Target;
+import radialmenu.wheel.WheelEntry.Kind;
 
 /** Session-only campaign overlay; delegates ability behavior to the vanilla buttons. */
 public final class CampaignRadialMenu implements CampaignInputListener, CampaignUIRenderingListener {
@@ -100,7 +108,7 @@ public final class CampaignRadialMenu implements CampaignInputListener, Campaign
     private long lastInputNanos;
     private long lastRenderNanos;
 
-    CampaignRadialMenu(RadialLayout layout) {
+    public CampaignRadialMenu(RadialLayout layout) {
         this.layout = Objects.requireNonNull(layout, "Radial menu layout was not loaded");
     }
 
@@ -218,10 +226,6 @@ public final class CampaignRadialMenu implements CampaignInputListener, Campaign
             iconHues.put(iconName, hue);
         }
         return iconHues.get(iconName);
-    }
-
-    static Color hueColor(float hue) {
-        return Color.getHSBColor(hue, 0.55f, 1f);
     }
 
     // the dark ui colour turned toward the same saturation and brightness in the tile's hue
@@ -491,7 +495,7 @@ public final class CampaignRadialMenu implements CampaignInputListener, Campaign
         // Draw backgrounds first so a neighboring sector cannot cover its label or icon.
         for (int i = 0; i < count; i++) {
             WheelEntry entry = ring.entries[i];
-            activeColors[i] = entry.fillHue == null ? Misc.getBasePlayerColor() : hueColor(entry.fillHue);
+            activeColors[i] = entry.fillHue == null ? Misc.getBasePlayerColor() : IconHue.tileColor(entry.fillHue);
             drawMesh(ring, i, Mesh.FILL, grow, eased[i], shade, false);
             Color tile = tinted && entry.tint != null && available(entry)
                     ? Misc.scaleAlpha(entry.tint, BACKGROUND_TINT * grow) : background;

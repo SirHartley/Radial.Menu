@@ -1,4 +1,4 @@
-package radialmenu;
+package radialmenu.layout;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -11,11 +11,11 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import radialmenu.config.Setting;
 
-final class RadialLayout {
+public final class RadialLayout {
 
     static final int MAIN_SLOTS = Setting.WHEEL_SLOTS.max;
     static final int SUBMENU_SLOTS = Setting.SUBMENU_SLOTS.max;
-    static final String MOD_ICON = "graphics/radialmenu/icon/small_icon_radialmenu.png";
+    public static final String MOD_ICON = "graphics/radialmenu/icon/small_icon_radialmenu.png";
     private static final String FILE = "radial_menu_layout.json";
 
     private final List<Slot> main;
@@ -25,7 +25,7 @@ final class RadialLayout {
     }
 
     // shared across saves in the common folder; a missing or unreadable file falls back to radial_menu.json
-    static RadialLayout load(List<String> defaults) {
+    public static RadialLayout load(List<String> defaults) {
         try {
             if (Global.getSettings().fileExistsInCommon(FILE)) {
                 return fromJSON(Global.getSettings().readJSONFromCommon(FILE, true));
@@ -46,7 +46,7 @@ final class RadialLayout {
         return new RadialLayout(slots(json.getJSONArray("main"), MAIN_SLOTS, true));
     }
 
-    Slot get(int slot, int child) {
+    public Slot get(int slot, int child) {
         return child < 0 ? main.get(slot) : main.get(slot).children().get(child);
     }
 

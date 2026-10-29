@@ -1,4 +1,4 @@
-package radialmenu;
+package radialmenu.render;
 
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
@@ -8,10 +8,10 @@ import org.lwjgl.BufferUtils;
 import org.lwjgl.opengl.GL11;
 
 /** A bicubic 2x icon copy with opacity falling to zero at the original icon's corners. */
-final class IconBackdrop {
+public final class IconBackdrop {
     private IconBackdrop() { }
 
-    static BufferedImage create(BufferedImage source) {
+    public static BufferedImage create(BufferedImage source) {
         int width = source.getWidth() * 2, height = source.getHeight() * 2;
         BufferedImage result = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
         Graphics2D graphics = result.createGraphics();
@@ -35,7 +35,7 @@ final class IconBackdrop {
         return result;
     }
 
-    static int upload(BufferedImage image) {
+    public static int upload(BufferedImage image) {
         int width = image.getWidth(), height = image.getHeight();
         ByteBuffer pixels = BufferUtils.createByteBuffer(width * height * 4);
         for (int y = 0; y < height; y++) {

@@ -1,7 +1,8 @@
-package radialmenu;
+package radialmenu.wheel;
 
 import com.fs.starfarer.api.Global;
 import com.fs.starfarer.api.util.FaderUtil;
+import radialmenu.render.FeatheredSector;
 
 // a ring of tiles: the main wheel, or one submenu's tiles on the outer ring
 final class WheelRing {

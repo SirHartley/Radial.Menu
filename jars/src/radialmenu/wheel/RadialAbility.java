@@ -1,4 +1,4 @@
-package radialmenu;
+package radialmenu.wheel;
 
 import com.fs.starfarer.api.characters.AbilityPlugin;
 

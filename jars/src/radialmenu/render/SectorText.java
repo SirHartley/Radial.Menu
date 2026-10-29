@@ -1,12 +1,12 @@
-package radialmenu;
+package radialmenu.render;
 
 import java.util.function.ToDoubleFunction;
 
 /** Measures the horizontal room available at a label's position in a sector. */
-final class SectorText {
+public final class SectorText {
     private SectorText() { }
 
-    static float width(double angle, double sectorWidth, float inner, float outer, float yOffset, float lineHeight) {
+    public static float width(double angle, double sectorWidth, float inner, float outer, float yOffset, float lineHeight) {
         float radius = (inner + outer) / 2f;
         double x = Math.cos(angle) * radius;
         double y = Math.sin(angle) * radius + yOffset;
@@ -30,7 +30,7 @@ final class SectorText {
         return Math.abs(difference) <= sectorWidth / 2;
     }
 
-    static String wrap(String text, float maxWidth, ToDoubleFunction<String> measure) {
+    public static String wrap(String text, float maxWidth, ToDoubleFunction<String> measure) {
         StringBuilder result = new StringBuilder();
         String line = "";
         for (String word : text.trim().split("\\s+")) {
