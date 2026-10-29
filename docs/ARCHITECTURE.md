@@ -40,7 +40,7 @@ Technical routing for the current implementation. Code paths below are relative 
 | `RadialMenuModPlugin.onGameLoad()` | `PlayerSettings.reload()`, `removeListenerOfClass(CampaignRadialMenu.class)`, then `addListener(new CampaignRadialMenu(layout), true)` (transient) |
 | `data/config/radial_menu.json` | Default main wheel: an ordered `abilities` array of at most `RadialLayout.MAIN_SLOTS` ability ids; `RadialMenuConfig.fromJSON` |
 | `radial_menu_layout.json` (common data) | The edited layout, shared by every campaign; `RadialLayout.load` and `RadialLayout.set` |
-| `data/config/LunaSettings.csv` | LunaLib settings rows (one General tab: a Hotkeys header with three `Keycode` rows and one `Radio` row, a Wheel header with two `Int` rows and four `Boolean` rows, an Animation header and two `Boolean` rows); ids, types and defaults mirror `config/Setting` |
+| `data/config/LunaSettings.csv` | LunaLib settings rows (one General tab: a Hotkeys header with three `Keycode` rows and one `Radio` row, a Wheel header with two `Int` rows and five `Boolean` rows, an Animation header and two `Boolean` rows); ids, types and defaults mirror `config/Setting` |
 | `data/config/LunaSettingsConfig.json` | LunaLib mod-list icon: `radial_menu.iconPath` is `graphics/radialmenu/icon/small_icon_radialmenu.png` (40x40) |
 
 Load order: `onApplicationLoad -> RadialMenuConfig.fromJSON -> RadialLayout.load -> loadTexture -> PlayerSettings.install` -> `onGameLoad -> PlayerSettings.reload -> removeListenerOfClass -> addListener`.
@@ -53,7 +53,7 @@ One gesture: opening key down `-> CampaignRadialMenu.openWheel -> RadialSelectio
 
 - A hotkey is a LunaLib `Keycode`: an LWJGL key code, `0` when the player clears it with Escape. `Setting.sanitize` maps a missing or out-of-range value to the default.
 - LunaLib's keybind button records only keyboard key-down events, so a mouse button cannot be bound there. `Setting.MOUSE_BUTTON` is a LunaLib `Radio` row instead (`secondaryValue` "None, Middle, Mouse 4, Mouse 5"). LunaLib saves the chosen label; `PlayerSettings.read` reads it with `LunaSettings.getString` and caches its index in `Setting.choices` (`Type.CHOICE`), and an unknown label falls back to None.
-- `Setting.ICONS_ONLY`, `Setting.TINTED_TILES`, `Setting.TOOLTIPS`, `Setting.SELECT_BY_DIRECTION`, `Setting.LIFT` and `Setting.NO_ANIMATION` are LunaLib `Boolean` rows, read with `LunaSettings.getBoolean` and cached as 0 or 1; `PlayerSettings.enabled` reads them.
+- `Setting.ICONS_ONLY`, `Setting.TINTED_TILES`, `Setting.TOOLTIPS`, `Setting.RETURN_MOUSE`, `Setting.SELECT_BY_DIRECTION`, `Setting.LIFT` and `Setting.NO_ANIMATION` are LunaLib `Boolean` rows, read with `LunaSettings.getBoolean` and cached as 0 or 1; `PlayerSettings.enabled` reads them.
 - The slot counts are LunaLib `Int` rows; `Setting.sanitize` clamps them to their bounds. `RadialLayout.MAIN_SLOTS` and `SUBMENU_SLOTS` are those settings' maximums, so the stored layout always covers the largest wheel.
 - `PlayerSettings.reload` reads through `LunaSettings.getInt`, which loads LunaLib's settings on first use.
 - LunaLib does not call listeners for settings saved during new-game setup (`if (!newGame) LunaSettings.reportSettingsChanged(mod)`), so `onGameLoad` reloads.
@@ -94,6 +94,7 @@ Tools live in `radialmenu/tools/`, run as standalone programs with JDK 17 from t
 | `radial_menu_icons_only` | Icons only |
 | `radial_menu_tinted_tiles` | Tinted tiles |
 | `radial_menu_tooltips` | Ability tooltips |
+| `radial_menu_return_mouse` | Return the mouse |
 | `radial_menu_select_by_direction` | Select by direction |
 | `radial_menu_lift` | Lift the hovered tile |
 | `radial_menu_no_animation` | No animations |
@@ -145,6 +146,7 @@ Runtime classes are in `radialmenu/` and four packages under it, one per respons
 - `trackPointer` runs each input frame while the wheel is open, with a frame time from `System.nanoTime()` clamped to 0.1 s. Holding the left mouse button on any tile for `EDIT_HOLD` (0.5 s) cancels the gesture and opens `SlotPicker`; on a child tile it edits that submenu slot. Mouse events are consumed while the wheel is open, so the button is polled with `Mouse.isButtonDown(0)`.
 - Sounds follow vanilla's ability bar, whose slot is a standard button: `ui_button_mouseover` whenever the pointer reaches a new tile, disabled or not; on release `ui_button_pressed` after a successful press, unless `AbilityPlugin.hasCustomButtonPressSounds()` (the ability then plays its own on-sound, as `BaseToggleAbility` and `BaseDurationAbility` do), and `ui_button_disabled_pressed` for an unusable or empty tile. A release over Submenu, in the centre or outside the wheel is silent. Completing an edit hold plays `ui_button_pressed`. Sources: `sounds.json`, `AbilityPlugin.hasCustomButtonPressSounds` (0.98a-RC8); the ability bar slot's button setup and the standard button's mouse-enter and press handling, translated from decompiled code.
 - After an edit the gesture stays held, so the wheel reopens only on a fresh hotkey press.
+- With `Setting.RETURN_MOUSE` on, `openWheel` saves `Mouse.getX/getY` (LWJGL window pixels, not UI coordinates) and the first input frame with the wheel closed puts the cursor back with `Mouse.setCursorPosition`, after any release has acted. That covers release, Escape, an edit hold (before `SlotPicker` takes input) and a close from the render pass, which is picked up on the next input frame. Vanilla moves the cursor the same way, in pixels (`NeuralLinkScript`, `getScreenWidthPixels`).
 
 ### Rendering
 

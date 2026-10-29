@@ -104,6 +104,10 @@ public final class CampaignRadialMenu implements CampaignInputListener, Campaign
     private Target tooltipTarget = Target.NONE;
     private float tooltipTime;
     private boolean tooltipExpanded;
+    private boolean returnMousePending;
+    // lwjgl window pixels, the space setCursorPosition takes
+    private int pressMouseX;
+    private int pressMouseY;
     private float hold;
     private long lastInputNanos;
     private long lastRenderNanos;
@@ -118,6 +122,9 @@ public final class CampaignRadialMenu implements CampaignInputListener, Campaign
         names = !PlayerSettings.enabled(Setting.ICONS_ONLY);
         tinted = PlayerSettings.enabled(Setting.TINTED_TILES);
         tooltips = PlayerSettings.enabled(Setting.TOOLTIPS);
+        returnMousePending = PlayerSettings.enabled(Setting.RETURN_MOUSE);
+        pressMouseX = Mouse.getX();
+        pressMouseY = Mouse.getY();
         selection.setDirectional(PlayerSettings.enabled(Setting.SELECT_BY_DIRECTION));
         extension.setDuration(animate ? EXTEND_IN : 0f, animate ? EXTEND_OUT : 0f);
         int count = PlayerSettings.get(Setting.WHEEL_SLOTS);
@@ -301,6 +308,11 @@ public final class CampaignRadialMenu implements CampaignInputListener, Campaign
         if (released && allowed()) {
             WheelEntry entry = entryAt(selection.target(mouseX, mouseY));
             if (entry != null) activate(entry);
+        }
+        // the render pass and an edit hold can close the wheel too, so this runs on the first input frame after
+        if (returnMousePending && !selection.isOpen()) {
+            returnMousePending = false;
+            Mouse.setCursorPosition(pressMouseX, pressMouseY);
         }
     }
 
