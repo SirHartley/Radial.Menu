@@ -112,18 +112,22 @@ Only Git-tracked files are candidates for packaging. Stage new assets and the
 release jar before a local preview; commit them before a remote build.
 
 The [Release action](../.github/workflows/release.yml) runs only when started by hand
-(Actions, Release, Run workflow, or `gh workflow run release.yml --ref <branch or tag>`);
+(Actions, Release, Run workflow, or `gh workflow run release.yml --ref main -f version=<version>`);
 pushes, pull requests and tags never start it, because Actions minutes cost money. It
-compiles the builder, runs `ReleaseBuildChecks` and packages. Started from a branch, it
-only keeps a preview artifact for 14 days. Started from a version tag, it publishes the
-checked ZIP as a GitHub release. Its body is that version's Changelog text, in a
+compiles the builder, runs `ReleaseBuildChecks` and packages. With the `version` input
+empty, it only keeps a preview artifact for 14 days. With a version, it runs
+`package <version>` and publishes the checked ZIP as a GitHub release. Started from a
+branch, the release creates the version tag on the packaged commit, so no tag is pushed
+by hand; it stops if that tag already exists. Started from an existing version tag, it
+publishes that tag, and a `version` input must match it. The release body is that
+version's Changelog text, in a
 plain-text block to retain line breaks and headings. It never generates notes from
 commits. CI needs only Java and the repository; it does not download or distribute
 game libraries.
 
-Before tagging, finish the changelog, remove `UNRELEASED`, merge the tested
-revision, and run `package <version>` on it locally. Push a tag and start the
-workflow only when the user requests a release. No deployment or separate download-host upload is part of this
+Before releasing, finish the changelog, remove `UNRELEASED`, merge the tested
+revision, and run `package <version>` on it locally. Start the workflow with a
+version only when the user requests a release. No deployment or separate download-host upload is part of this
 workflow. An existing release is never overwritten; a rerun stops with an
 error instead.
 
@@ -136,9 +140,9 @@ Only when the user asks.
 3. Rebuild the release jar with `build` and commit it with the changelog.
 4. Run `package <version>` locally as a preview check.
 5. Open a PR and merge it. No CI runs on pull requests.
-6. Tag the merged commit with exactly the version and push the tag.
-7. Start the Release workflow on that tag.
-8. Verify the GitHub release (ZIP and notes) and that main's `radialmenu.version`
+6. Start the Release workflow on `main` with `version` set to exactly the version. It
+   tags the packaged commit itself.
+7. Verify the GitHub release (ZIP and notes) and that main's `radialmenu.version`
    now names it.
 
 ## Maintenance
