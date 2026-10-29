@@ -66,6 +66,11 @@ public final class CampaignRadialMenu implements CampaignInputListener, Campaign
     // measured from a vanilla ability slot: the outer line shows the base ui colour at 70%, the inner one at 35%
     private static final float EDGE_ALPHA = 0.7f;
     private static final float INNER_EDGE_ALPHA = 0.35f;
+    // the two 1-unit border lines cover the outer 2 units of a tile
+    private static final float BORDER = 2f;
+    // backdrop glow size; the icons themselves draw at native size so they stay sharp
+    private static final float BACKDROP = 44f;
+    private static final float NAMED_BACKDROP = 36f;
 
     private final RadialLayout layout;
     private final RadialSelection selection = new RadialSelection(0);
@@ -95,6 +100,7 @@ public final class CampaignRadialMenu implements CampaignInputListener, Campaign
         animate = !PlayerSettings.enabled(Setting.NO_ANIMATION);
         lift = PlayerSettings.enabled(Setting.LIFT);
         names = !PlayerSettings.enabled(Setting.ICONS_ONLY);
+        selection.setDirectional(PlayerSettings.enabled(Setting.SELECT_BY_DIRECTION));
         extension.setDuration(animate ? EXTEND_IN : 0f, animate ? EXTEND_OUT : 0f);
         int count = PlayerSettings.get(Setting.WHEEL_SLOTS);
         WheelEntry[] entries = new WheelEntry[count];
@@ -161,11 +167,7 @@ public final class CampaignRadialMenu implements CampaignInputListener, Campaign
             WheelEntry entry = ring.entries[i];
             // a saved submenu icon can name a sprite from a mod that is no longer loaded
             if (entry.iconName != null) entry.icon = Global.getSettings().getSprite(entry.iconName);
-            if (entry.icon != null) {
-                float size = names ? 36f : 44f;
-                entry.icon.setSize(size, size);
-                entry.icon.setNormalBlend();
-            }
+            if (entry.icon != null) entry.icon.setNormalBlend();
             entry.fillHue = entry.hue != null ? entry.hue : entry.iconName == null ? null : iconHue(entry.iconName);
             entry.label = names ? label(entry.title, ring, i, entry.icon != null) : null;
         }
@@ -334,6 +336,12 @@ public final class CampaignRadialMenu implements CampaignInputListener, Campaign
             if (sector == parent) return;
             retract();
             extend(sector);
+        } else {
+            // only a directional wheel targets a main tile past the ring, outside the submenu's span
+            Target target = selection.target(mouseX, mouseY);
+            if (target.child() >= 0 || target.sector() < 0 || target.sector() == parent) return;
+            retract();
+            extend(target.sector());
         }
     }
 
@@ -478,8 +486,8 @@ public final class CampaignRadialMenu implements CampaignInputListener, Campaign
             }
             float alpha = (available ? 1f : 0.4f) * grow;
             // without a name the icon takes the tile's centre
-            float iconY = label != null ? y - 10f : y;
-            drawIconBackdrop(entry.iconName, entry.icon, x, iconY, alpha);
+            float iconY = label != null ? y - 12f : y;
+            drawIconBackdrop(entry.iconName, label != null ? NAMED_BACKDROP : BACKDROP, x, iconY, alpha);
             drawFadedIcon(entry.icon, x, iconY, alpha, false);
             if (glow[i] > 0f) drawFadedIcon(entry.icon, x, iconY, alpha * glow[i] * 0.33f, true);
             if (label != null) drawLabel(label, x, y + 12f + label.computeTextHeight(label.getText()) / 2f, grow);
@@ -494,9 +502,9 @@ public final class CampaignRadialMenu implements CampaignInputListener, Campaign
         }
         if (held >= 0 && hold > 0f && held < count) {
             // the edit hold runs clockwise along the outer edge
-            double end = ring.center(held) + ring.width / 2;
+            double start = ring.center(held) - ring.width / 2;
             float outer = outerRadius(ring, grow, eased[held]);
-            drawBand(end - ring.width * Math.min(1f, hold / EDIT_HOLD), end,
+            drawBand(start, start + ring.width, RadialSelection.TILE_GAP / 2f, Math.min(1f, hold / EDIT_HOLD),
                     outer - 4f, outer, 1f, 1f, Misc.getBrightPlayerColor());
         }
     }
@@ -531,7 +539,7 @@ public final class CampaignRadialMenu implements CampaignInputListener, Campaign
         GL11.glEnd();
     }
 
-    private void drawIconBackdrop(String name, SpriteAPI icon, float x, float y, float alpha) {
+    private void drawIconBackdrop(String name, float size, float x, float y, float alpha) {
         Integer texture = backdropTextures.get(name);
         if (texture == null) {
             BufferedImage image = iconBackdrops.remove(name);
@@ -546,7 +554,7 @@ public final class CampaignRadialMenu implements CampaignInputListener, Campaign
         GL11.glTexEnvi(GL11.GL_TEXTURE_ENV, GL11.GL_TEXTURE_ENV_MODE, GL11.GL_MODULATE);
         GL11.glBindTexture(GL11.GL_TEXTURE_2D, texture);
         GL11.glColor4f(1f, 1f, 1f, alpha);
-        float w = icon.getWidth() * 1.25f, h = icon.getHeight() * 1.25f;
+        float w = size * 1.25f, h = size * 1.25f;
         GL11.glBegin(GL11.GL_QUADS);
         GL11.glTexCoord2f(0f, 0f); GL11.glVertex2f(x - w, y - h);
         GL11.glTexCoord2f(1f, 0f); GL11.glVertex2f(x + w, y - h);
@@ -565,28 +573,40 @@ public final class CampaignRadialMenu implements CampaignInputListener, Campaign
         icon.bindTexture();
         float tx = icon.getTexX(), ty = icon.getTexY();
         float tw = icon.getTexWidth(), th = icon.getTexHeight();
-        float width = icon.getWidth() * 1.25f, height = icon.getHeight() * 1.25f;
+        float width = icon.getWidth(), height = icon.getHeight();
+        // one texel per unit on whole pixels, so linear filtering does not blur the icon
+        float left = snap(x - width / 2f), bottom = snap(y - height / 2f);
         GL11.glBegin(GL11.GL_QUADS);
         for (int i = 0; i < IconFade.MESH.length; i += 3) {
             float u = IconFade.MESH[i], v = IconFade.MESH[i + 1];
             GL11.glColor4f(1f, 1f, 1f, alpha * IconFade.MESH[i + 2]);
             GL11.glTexCoord2f(tx + u * tw, ty + v * th);
-            GL11.glVertex2f(x + (u - 0.5f) * width, y + (v - 0.5f) * height);
+            GL11.glVertex2f(left + u * width, bottom + v * height);
         }
         GL11.glEnd();
     }
 
-    // fills from the outer edge inward; vanilla's fraction is 0 at the start of the cooldown and 1 at its end
-    private void drawCooldown(double start, double end, float ringInner, float outer, float fraction, Color color) {
-        float feather = 1f / Global.getSettings().getScreenScaleMult();
-        float inner = ringInner + feather;
-        float top = outer - feather;
-        float front = top - (top - inner) * Math.max(0f, Math.min(1f, fraction));
-        drawBand(start, end, front - feather, front, 0f, 1f, color);
-        drawBand(start, end, front, top, 1f, 1f, color);
+    private static float snap(float value) {
+        float scale = Global.getSettings().getScreenScaleMult();
+        return Math.round(value * scale) / scale;
     }
 
-    private void drawBand(double start, double end, float inner, float outer,
+    // fills from the outer edge inward inside the borders; vanilla's fraction is 0 at the start of the cooldown
+    // and 1 at its end
+    private void drawCooldown(double start, double end, float ringInner, float outer, float fraction, Color color) {
+        float feather = 1f / Global.getSettings().getScreenScaleMult();
+        float side = RadialSelection.TILE_GAP / 2f + BORDER;
+        float inner = ringInner + BORDER;
+        float top = outer - BORDER;
+        if (top <= inner) return;
+        float front = top - (top - inner) * Math.max(0f, Math.min(1f, fraction));
+        drawBand(start, end, side, 1f, Math.max(inner, front - feather), front, 0f, 1f, color);
+        drawBand(start, end, side, 1f, front, top, 1f, 1f, color);
+    }
+
+    // an arc band between straight sides side units inside the boundary rays, like the tile's own sides;
+    // portion keeps that share of it, measured clockwise from end
+    private void drawBand(double start, double end, float side, float portion, float inner, float outer,
                           float innerCoverage, float outerCoverage, Color color) {
         GL11.glDisable(GL11.GL_TEXTURE_2D);
         GL11.glEnable(GL11.GL_BLEND);
@@ -596,14 +616,21 @@ public final class CampaignRadialMenu implements CampaignInputListener, Campaign
         int steps = FeatheredSector.steps(start, end);
         GL11.glBegin(GL11.GL_QUADS);
         for (int step = 0; step < steps; step++) {
-            double a = start + (end - start) * step / steps;
-            double b = start + (end - start) * (step + 1) / steps;
-            bandVertex(a, inner, innerCoverage, color);
-            bandVertex(a, outer, outerCoverage, color);
-            bandVertex(b, outer, outerCoverage, color);
-            bandVertex(b, inner, innerCoverage, color);
+            bandVertex(bandAngle(start, end, side, portion, inner, step, steps), inner, innerCoverage, color);
+            bandVertex(bandAngle(start, end, side, portion, outer, step, steps), outer, outerCoverage, color);
+            bandVertex(bandAngle(start, end, side, portion, outer, step + 1, steps), outer, outerCoverage, color);
+            bandVertex(bandAngle(start, end, side, portion, inner, step + 1, steps), inner, innerCoverage, color);
         }
         GL11.glEnd();
+    }
+
+    // the full band's corners at different radii lie on one straight side, so the quads keep it straight
+    private static double bandAngle(double start, double end, float side, float portion, float radius,
+                                    int step, int steps) {
+        double inset = Math.asin(Math.min(1f, side / Math.max(radius, side)));
+        double high = end - inset;
+        double low = high - Math.max(0, end - start - 2 * inset) * portion;
+        return low + (high - low) * step / steps;
     }
 
     private void bandVertex(double angle, float radius, float coverage, Color color) {

@@ -22,6 +22,7 @@ final class RadialSelection {
     private float extent = OUTER_RADIUS + SELECTION_LIFT;
     private int parent = -1;
     private int children;
+    private boolean directional;
     private boolean held;
     private boolean open;
     private float x;
@@ -53,6 +54,11 @@ final class RadialSelection {
     }
 
     int extended() { return parent; }
+
+    // the tile in the pointer's direction, at any distance past the centre, instead of the tile under it
+    void setDirectional(boolean directional) {
+        this.directional = directional;
+    }
 
     // true when the opening keys were released over an open wheel
     boolean update(boolean openingKeyHeld, boolean allowed, boolean cancel,
@@ -108,11 +114,12 @@ final class RadialSelection {
         float distance = distance(mouseX, mouseY);
         if (distance < INNER_RADIUS) return Target.NONE;
         if (children > 0 && distance >= OUTER_RADIUS) {
-            if (distance > CHILD_OUTER_RADIUS + SELECTION_LIFT) return Target.NONE;
+            if (!directional && distance > CHILD_OUTER_RADIUS + SELECTION_LIFT) return Target.NONE;
             int child = childAt(mouseX, mouseY);
-            return child < 0 ? Target.NONE : new Target(parent, child);
+            if (child >= 0) return new Target(parent, child);
+            return directional ? new Target(sectorAt(mouseX, mouseY), -1) : Target.NONE;
         }
-        if (distance > OUTER_RADIUS + SELECTION_LIFT) return Target.NONE;
+        if (!directional && distance > OUTER_RADIUS + SELECTION_LIFT) return Target.NONE;
         return new Target(sectorAt(mouseX, mouseY), -1);
     }
 
