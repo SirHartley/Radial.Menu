@@ -27,6 +27,7 @@ import com.fs.starfarer.api.ui.CustomPanelAPI;
 import com.fs.starfarer.api.ui.PositionAPI;
 import com.fs.starfarer.api.ui.TooltipMakerAPI;
 import com.fs.starfarer.api.util.Misc;
+import org.lwjgl.opengl.GL11;
 
 // one object is the empty dialog host, the custom dialog delegate and the panel plugin
 final class SlotPicker extends BaseCustomUIPanelPlugin implements InteractionDialogPlugin, CustomDialogDelegate {
@@ -60,15 +61,19 @@ final class SlotPicker extends BaseCustomUIPanelPlugin implements InteractionDia
     private String icon;
     private Float hue;
 
-    // plugin render runs after the panel's children, so the sprite sits over its checkbox
+    // plugin render runs after the panel's children, so the sprite or swatch sits over its checkbox
     private static final class IconCell extends BaseCustomUIPanelPlugin {
 
+        private static final float INSET = 4f;
+
         private final SpriteAPI sprite;
+        private final Color swatch;
         private final SlotPicker owner;
         private PositionAPI position;
 
-        IconCell(String sprite, SlotPicker owner) {
+        IconCell(String sprite, Color swatch, SlotPicker owner) {
             this.sprite = sprite == null ? null : Global.getSettings().getSprite(sprite);
+            this.swatch = swatch;
             this.owner = owner;
         }
 
@@ -84,8 +89,17 @@ final class SlotPicker extends BaseCustomUIPanelPlugin implements InteractionDia
 
         @Override
         public void render(float alphaMult) {
-            if (sprite == null || position == null) return;
-            sprite.setSize(position.getWidth() - 8f, position.getHeight() - 8f);
+            if (position == null) return;
+            if (swatch != null) {
+                GL11.glDisable(GL11.GL_TEXTURE_2D);
+                GL11.glEnable(GL11.GL_BLEND);
+                GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+                Misc.renderQuad(position.getX() + INSET, position.getY() + INSET, position.getWidth() - 2f * INSET,
+                        position.getHeight() - 2f * INSET, swatch, alphaMult);
+                GL11.glEnable(GL11.GL_TEXTURE_2D);
+            }
+            if (sprite == null) return;
+            sprite.setSize(position.getWidth() - 2f * INSET, position.getHeight() - 2f * INSET);
             sprite.setAlphaMult(alphaMult);
             sprite.setNormalBlend();
             sprite.renderAtCenter(position.getCenterX(), position.getCenterY());
@@ -288,11 +302,14 @@ final class SlotPicker extends BaseCustomUIPanelPlugin implements InteractionDia
     }
 
     private void cell(CustomPanelAPI host, Object data, String sprite, float x, float y, float size) {
-        CustomPanelAPI cell = host.createCustomPanel(size, size, new IconCell(sprite, this));
+        Color swatch = data instanceof Float hue ? CampaignRadialMenu.hueColor(hue) : null;
+        CustomPanelAPI cell = host.createCustomPanel(size, size, new IconCell(sprite, swatch, this));
         TooltipMakerAPI element = cell.createUIElement(size, size, false);
-        Color fill = data instanceof Float swatch ? Color.getHSBColor(swatch, 0.65f, 0.6f) : Misc.getDarkPlayerColor();
-        buttons.put(data, element.addAreaCheckbox("", data, Misc.getBasePlayerColor(), fill,
-                Misc.getBrightPlayerColor(), size, size, 0f));
+        ButtonAPI box = element.addAreaCheckbox("", data, Misc.getBasePlayerColor(), Misc.getDarkPlayerColor(),
+                Misc.getBrightPlayerColor(), size, size, 0f);
+        // a tooltip shifts its first element 5 units right; undo it so the box sits under the sprite
+        box.getPosition().setXAlignOffset(0f);
+        buttons.put(data, box);
         cell.addUIElement(element).inTL(0f, 0f);
         host.addComponent(cell).inTL(x, y);
     }
