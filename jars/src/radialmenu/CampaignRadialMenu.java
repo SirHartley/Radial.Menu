@@ -66,6 +66,9 @@ public final class CampaignRadialMenu implements CampaignInputListener, Campaign
     // measured from a vanilla ability slot: the outer line shows the base ui colour at 70%, the inner one at 35%
     private static final float EDGE_ALPHA = 0.7f;
     private static final float INNER_EDGE_ALPHA = 0.35f;
+    // backdrop glow size; the icons themselves draw at native size so they stay sharp
+    private static final float BACKDROP = 44f;
+    private static final float NAMED_BACKDROP = 36f;
 
     private final RadialLayout layout;
     private final RadialSelection selection = new RadialSelection(0);
@@ -161,11 +164,7 @@ public final class CampaignRadialMenu implements CampaignInputListener, Campaign
             WheelEntry entry = ring.entries[i];
             // a saved submenu icon can name a sprite from a mod that is no longer loaded
             if (entry.iconName != null) entry.icon = Global.getSettings().getSprite(entry.iconName);
-            if (entry.icon != null) {
-                float size = names ? 36f : 44f;
-                entry.icon.setSize(size, size);
-                entry.icon.setNormalBlend();
-            }
+            if (entry.icon != null) entry.icon.setNormalBlend();
             entry.fillHue = entry.hue != null ? entry.hue : entry.iconName == null ? null : iconHue(entry.iconName);
             entry.label = names ? label(entry.title, ring, i, entry.icon != null) : null;
         }
@@ -478,8 +477,8 @@ public final class CampaignRadialMenu implements CampaignInputListener, Campaign
             }
             float alpha = (available ? 1f : 0.4f) * grow;
             // without a name the icon takes the tile's centre
-            float iconY = label != null ? y - 10f : y;
-            drawIconBackdrop(entry.iconName, entry.icon, x, iconY, alpha);
+            float iconY = label != null ? y - 12f : y;
+            drawIconBackdrop(entry.iconName, label != null ? NAMED_BACKDROP : BACKDROP, x, iconY, alpha);
             drawFadedIcon(entry.icon, x, iconY, alpha, false);
             if (glow[i] > 0f) drawFadedIcon(entry.icon, x, iconY, alpha * glow[i] * 0.33f, true);
             if (label != null) drawLabel(label, x, y + 12f + label.computeTextHeight(label.getText()) / 2f, grow);
@@ -531,7 +530,7 @@ public final class CampaignRadialMenu implements CampaignInputListener, Campaign
         GL11.glEnd();
     }
 
-    private void drawIconBackdrop(String name, SpriteAPI icon, float x, float y, float alpha) {
+    private void drawIconBackdrop(String name, float size, float x, float y, float alpha) {
         Integer texture = backdropTextures.get(name);
         if (texture == null) {
             BufferedImage image = iconBackdrops.remove(name);
@@ -546,7 +545,7 @@ public final class CampaignRadialMenu implements CampaignInputListener, Campaign
         GL11.glTexEnvi(GL11.GL_TEXTURE_ENV, GL11.GL_TEXTURE_ENV_MODE, GL11.GL_MODULATE);
         GL11.glBindTexture(GL11.GL_TEXTURE_2D, texture);
         GL11.glColor4f(1f, 1f, 1f, alpha);
-        float w = icon.getWidth() * 1.25f, h = icon.getHeight() * 1.25f;
+        float w = size * 1.25f, h = size * 1.25f;
         GL11.glBegin(GL11.GL_QUADS);
         GL11.glTexCoord2f(0f, 0f); GL11.glVertex2f(x - w, y - h);
         GL11.glTexCoord2f(1f, 0f); GL11.glVertex2f(x + w, y - h);
@@ -565,15 +564,22 @@ public final class CampaignRadialMenu implements CampaignInputListener, Campaign
         icon.bindTexture();
         float tx = icon.getTexX(), ty = icon.getTexY();
         float tw = icon.getTexWidth(), th = icon.getTexHeight();
-        float width = icon.getWidth() * 1.25f, height = icon.getHeight() * 1.25f;
+        float width = icon.getWidth(), height = icon.getHeight();
+        // one texel per unit on whole pixels, so linear filtering does not blur the icon
+        float left = snap(x - width / 2f), bottom = snap(y - height / 2f);
         GL11.glBegin(GL11.GL_QUADS);
         for (int i = 0; i < IconFade.MESH.length; i += 3) {
             float u = IconFade.MESH[i], v = IconFade.MESH[i + 1];
             GL11.glColor4f(1f, 1f, 1f, alpha * IconFade.MESH[i + 2]);
             GL11.glTexCoord2f(tx + u * tw, ty + v * th);
-            GL11.glVertex2f(x + (u - 0.5f) * width, y + (v - 0.5f) * height);
+            GL11.glVertex2f(left + u * width, bottom + v * height);
         }
         GL11.glEnd();
+    }
+
+    private static float snap(float value) {
+        float scale = Global.getSettings().getScreenScaleMult();
+        return Math.round(value * scale) / scale;
     }
 
     // fills from the outer edge inward; vanilla's fraction is 0 at the start of the cooldown and 1 at its end
