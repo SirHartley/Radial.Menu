@@ -37,6 +37,7 @@ import radialmenu.render.FeatheredSector;
 import radialmenu.render.IconBackdrop;
 import radialmenu.render.IconFade;
 import radialmenu.render.IconHue;
+import radialmenu.render.IconScale;
 import radialmenu.render.SectorText;
 import radialmenu.wheel.RadialSelection.Target;
 import radialmenu.wheel.WheelEntry.Kind;
@@ -84,6 +85,9 @@ public final class CampaignRadialMenu implements CampaignInputListener, Campaign
     private final Map<String, Float> iconHues = new HashMap<String, Float>();
     private final Map<String, BufferedImage> iconBackdrops = new HashMap<String, BufferedImage>();
     private final Map<String, Integer> backdropTextures = new HashMap<String, Integer>();
+    // icons that are not IconScale.SIZE square, resized once when read
+    private final Map<String, BufferedImage> scaledIcons = new HashMap<>();
+    private final Map<String, Integer> scaledTextures = new HashMap<>();
     private final AbilityTooltip tooltip = new AbilityTooltip();
     private LabelAPI cancelLabel;
 
@@ -231,6 +235,8 @@ public final class CampaignRadialMenu implements CampaignInputListener, Campaign
                 if (image == null) throw new IOException("Unsupported image format: " + iconName);
                 hue = IconHue.average(image);
                 iconBackdrops.put(iconName, IconBackdrop.create(image));
+                BufferedImage scaled = IconScale.normalize(image);
+                if (scaled != null) scaledIcons.put(iconName, scaled);
             } catch (IOException e) {
                 Global.getLogger(CampaignRadialMenu.class).warn("Could not read ability icon " + iconName, e);
             }
@@ -584,9 +590,9 @@ public final class CampaignRadialMenu implements CampaignInputListener, Campaign
             // without a name the icon takes the tile's centre
             float iconY = label != null ? y - 12f : y;
             Color tint = RadialLayout.isModIcon(entry.iconName) ? IconHue.modIconColor(entry.fillHue) : Color.white;
-            drawIconBackdrop(entry.iconName, entry.icon, x, iconY, alpha, tint);
-            drawFadedIcon(entry.icon, x, iconY, alpha, tint, false);
-            if (glow[i] > 0f) drawFadedIcon(entry.icon, x, iconY, alpha * glow[i] * 0.33f, tint, true);
+            drawIconBackdrop(entry.iconName, x, iconY, alpha, tint);
+            drawFadedIcon(entry.iconName, entry.icon, x, iconY, alpha, tint, false);
+            if (glow[i] > 0f) drawFadedIcon(entry.iconName, entry.icon, x, iconY, alpha * glow[i] * 0.33f, tint, true);
             if (label != null) drawLabel(label, x, y + 12f + label.computeTextHeight(label.getText()) / 2f, grow);
         }
         // Draw every border after all backgrounds; each tile is closed, so nothing is shared.
@@ -642,14 +648,21 @@ public final class CampaignRadialMenu implements CampaignInputListener, Campaign
         GL11.glEnd();
     }
 
-    private void drawIconBackdrop(String name, SpriteAPI icon, float x, float y, float alpha, Color tint) {
-        Integer texture = backdropTextures.get(name);
+    // textures are made on first draw, on the render thread
+    private static Integer texture(String name, Map<String, BufferedImage> images, Map<String, Integer> textures) {
+        Integer texture = textures.get(name);
         if (texture == null) {
-            BufferedImage image = iconBackdrops.remove(name);
-            if (image == null) return;
+            BufferedImage image = images.remove(name);
+            if (image == null) return null;
             texture = IconBackdrop.upload(image);
-            backdropTextures.put(name, texture);
+            textures.put(name, texture);
         }
+        return texture;
+    }
+
+    private void drawIconBackdrop(String name, float x, float y, float alpha, Color tint) {
+        Integer texture = texture(name, iconBackdrops, backdropTextures);
+        if (texture == null) return;
         GL11.glEnable(GL11.GL_TEXTURE_2D);
         GL11.glEnable(GL11.GL_BLEND);
         GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
@@ -657,8 +670,9 @@ public final class CampaignRadialMenu implements CampaignInputListener, Campaign
         GL11.glTexEnvi(GL11.GL_TEXTURE_ENV, GL11.GL_TEXTURE_ENV_MODE, GL11.GL_MODULATE);
         GL11.glBindTexture(GL11.GL_TEXTURE_2D, texture);
         GL11.glColor4f(tint.getRed() / 255f, tint.getGreen() / 255f, tint.getBlue() / 255f, alpha);
-        // twice the icon's size, so the backdrop's fade reaches zero at the icon's corners
-        float w = icon.getWidth(), h = icon.getHeight();
+        // twice the icon's size, so the backdrop's fade reaches zero at the icon's corners; a readable icon,
+        // the only kind with a backdrop, always draws at IconScale.SIZE
+        float w = IconScale.SIZE, h = IconScale.SIZE;
         // the upload starts at the image's top row and ui y points up, so texture v 0 belongs at the top
         GL11.glBegin(GL11.GL_QUADS);
         GL11.glTexCoord2f(0f, 1f); GL11.glVertex2f(x - w, y - h);
@@ -668,17 +682,34 @@ public final class CampaignRadialMenu implements CampaignInputListener, Campaign
         GL11.glEnd();
     }
 
-    private void drawFadedIcon(SpriteAPI icon, float x, float y, float alpha, Color tint, boolean additive) {
+    private void drawFadedIcon(String name, SpriteAPI icon, float x, float y, float alpha, Color tint,
+                               boolean additive) {
         GL11.glEnable(GL11.GL_TEXTURE_2D);
         GL11.glEnable(GL11.GL_BLEND);
         GL11.glBlendFunc(GL11.GL_SRC_ALPHA, additive ? GL11.GL_ONE : GL11.GL_ONE_MINUS_SRC_ALPHA);
         GL11.glDisable(GL11.GL_ALPHA_TEST);
         GL11.glShadeModel(GL11.GL_SMOOTH);
         GL11.glTexEnvi(GL11.GL_TEXTURE_ENV, GL11.GL_TEXTURE_ENV_MODE, GL11.GL_MODULATE);
-        icon.bindTexture();
-        float tx = icon.getTexX(), ty = icon.getTexY();
-        float tw = icon.getTexWidth(), th = icon.getTexHeight();
-        float width = icon.getWidth(), height = icon.getHeight();
+        Integer scaled = texture(name, scaledIcons, scaledTextures);
+        float tx, ty, tw, th, width, height;
+        if (scaled != null) {
+            GL11.glBindTexture(GL11.GL_TEXTURE_2D, scaled);
+            // the upload starts at the image's top row, so v runs from 1 at the bottom to 0 at the top
+            tx = 0f;
+            ty = 1f;
+            tw = 1f;
+            th = -1f;
+            width = IconScale.SIZE;
+            height = IconScale.SIZE;
+        } else {
+            icon.bindTexture();
+            tx = icon.getTexX();
+            ty = icon.getTexY();
+            tw = icon.getTexWidth();
+            th = icon.getTexHeight();
+            width = icon.getWidth();
+            height = icon.getHeight();
+        }
         // one texel per unit on whole pixels, so linear filtering does not blur the icon
         float left = snap(x - width / 2f), bottom = snap(y - height / 2f);
         GL11.glBegin(GL11.GL_QUADS);
