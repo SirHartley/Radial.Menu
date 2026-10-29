@@ -41,6 +41,7 @@ Technical routing for the current implementation. Code paths below are relative 
 | `data/config/radial_menu.json` | Default main wheel: an ordered `abilities` array of at most `RadialLayout.MAIN_SLOTS` ability ids; `RadialMenuConfig.fromJSON` |
 | `radial_menu_layout.json` (common data) | The edited layout, shared by every campaign; `RadialLayout.load` and `RadialLayout.set` |
 | `data/config/LunaSettings.csv` | LunaLib settings rows (one General tab: a Hotkeys header with three `Keycode` rows and one `Radio` row, a Wheel header with two `Int` rows and six `Boolean` rows, an Animation header and two `Boolean` rows); ids, types and defaults mirror `config/Setting` |
+| `data/strings/tips.json` | Loading screen tips about the wheel: how to open it, its default hotkeys and that LunaLib's mod settings change them, editing slots, submenus, cancelling and tooltips. The game merges every mod's `tips` array into vanilla's, each tip at the default frequency of 1 |
 | `data/config/LunaSettingsConfig.json` | LunaLib mod-list icon: `radial_menu.iconPath` is `graphics/radialmenu/icon/small_icon_radialmenu.png` (40x40) |
 
 Load order: `onApplicationLoad -> RadialMenuConfig.fromJSON -> RadialLayout.load -> loadTexture -> PlayerSettings.install` -> `onGameLoad -> PlayerSettings.reload -> removeListenerOfClass -> addListener`.
