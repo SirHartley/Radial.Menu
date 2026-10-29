@@ -18,7 +18,7 @@ Technical routing for the current implementation. Code paths below are relative 
 | Submenu ring | `CampaignRadialMenu.updateExtension -> extend/retract -> RadialSelection.extend`, `childAngle`, `target` |
 | UI sounds | `CampaignRadialMenu.trackPointer` (mouse-over), `activate` (release), `edit` (edit hold) |
 | Editing a slot | `CampaignRadialMenu.trackPointer` (`EDIT_HOLD`) `-> edit -> SlotPicker.open -> RadialLayout.set` |
-| Hotkeys | `data/config/LunaSettings.csv -> config/PlayerSettings.reload -> CampaignRadialMenu.openingKeyHeld` (`Setting.HOTKEYS`); [Settings](#settings) |
+| Hotkeys | `data/config/LunaSettings.csv -> config/PlayerSettings.reload -> CampaignRadialMenu.openingKeyHeld` (`Setting.HOTKEYS`, `Setting.MOUSE_BUTTON`); [Settings](#settings) |
 | Opening keys, Escape, cancel, release target | `CampaignRadialMenu.processCampaignInputPreCore -> RadialSelection.update -> RadialSelection.hoveredSector` |
 | What a selection does | `CampaignRadialMenu.processCampaignInputPreCore -> CampaignRadialMenu.allowed -> RadialAbility.press -> AbilityPlugin.pressButton`, for ability entries only |
 | Greyed-out or pulsing sector | `CampaignRadialMenu.available`, `RadialAbility.isAvailable` (`AbilityPlugin.isUsable`), `RadialAbility.isActive` (`AbilityPlugin.isActiveOrInProgress`) |
@@ -40,7 +40,7 @@ Technical routing for the current implementation. Code paths below are relative 
 | `RadialMenuModPlugin.onGameLoad()` | `PlayerSettings.reload()`, `removeListenerOfClass(CampaignRadialMenu.class)`, then `addListener(new CampaignRadialMenu(layout), true)` (transient) |
 | `data/config/radial_menu.json` | Default main wheel: an ordered `abilities` array of at most `RadialLayout.MAIN_SLOTS` ability ids; `RadialMenuConfig.fromJSON` |
 | `radial_menu_layout.json` (common data) | The edited layout, shared by every campaign; `RadialLayout.load` and `RadialLayout.set` |
-| `data/config/LunaSettings.csv` | LunaLib settings rows (one General tab: a Hotkeys header and three `Keycode` rows, a Wheel header with two `Int` rows and one `Boolean` row, an Animation header and two `Boolean` rows); ids, types and defaults mirror `config/Setting` |
+| `data/config/LunaSettings.csv` | LunaLib settings rows (one General tab: a Hotkeys header with three `Keycode` rows and one `Radio` row, a Wheel header with two `Int` rows and four `Boolean` rows, an Animation header and two `Boolean` rows); ids, types and defaults mirror `config/Setting` |
 | `data/config/LunaSettingsConfig.json` | LunaLib mod-list icon: `radial_menu.iconPath` is `graphics/radialmenu/icon/small_icon_radialmenu.png` (40x40) |
 
 Load order: `onApplicationLoad -> RadialMenuConfig.fromJSON -> RadialLayout.load -> loadTexture -> PlayerSettings.install` -> `onGameLoad -> PlayerSettings.reload -> removeListenerOfClass -> addListener`.
@@ -52,6 +52,7 @@ One gesture: opening key down `-> CampaignRadialMenu.openWheel -> RadialSelectio
 `config/Setting` owns ids and defaults. `data/config/LunaSettings.csv` supplies the rows and owns the setting names and help text (`fieldName`, `fieldDescription`); it must match `Setting` on ids, types and defaults. `config/PlayerSettings` installs a `LunaSettingsListener` on application start, reloads on every LunaLib save and on game load, and caches sanitized values. Runtime callers read `PlayerSettings.get`, never LunaLib each frame.
 
 - A hotkey is a LunaLib `Keycode`: an LWJGL key code, `0` when the player clears it with Escape. `Setting.sanitize` maps a missing or out-of-range value to the default.
+- LunaLib's keybind button records only keyboard key-down events, so a mouse button cannot be bound there. `Setting.MOUSE_BUTTON` is a LunaLib `Radio` row instead (`secondaryValue` "None, Middle, Mouse 4, Mouse 5"). LunaLib saves the chosen label; `PlayerSettings.read` reads it with `LunaSettings.getString` and caches its index in `Setting.choices` (`Type.CHOICE`), and an unknown label falls back to None.
 - `Setting.ICONS_ONLY`, `Setting.TINTED_TILES`, `Setting.TOOLTIPS`, `Setting.SELECT_BY_DIRECTION`, `Setting.LIFT` and `Setting.NO_ANIMATION` are LunaLib `Boolean` rows, read with `LunaSettings.getBoolean` and cached as 0 or 1; `PlayerSettings.enabled` reads them.
 - The slot counts are LunaLib `Int` rows; `Setting.sanitize` clamps them to their bounds. `RadialLayout.MAIN_SLOTS` and `SUBMENU_SLOTS` are those settings' maximums, so the stored layout always covers the largest wheel.
 - `PlayerSettings.reload` reads through `LunaSettings.getInt`, which loads LunaLib's settings on first use.
@@ -59,7 +60,7 @@ One gesture: opening key down `-> CampaignRadialMenu.openWheel -> RadialSelectio
 - LunaLib passes `fieldName` and `fieldDescription` to `addPara` as format strings; write a literal percent sign as `%%`.
 - LunaLib reads `data/config/LunaSettingsConfig.json` merged across all mods and takes `iconPath` under this mod's id for its mod list. The path is a literal asset reference, so `ReleaseBuild` fails a package that leaves the icon out.
 
-Sources (LunaLib 2.0.1, `libs/Lazylib_lunalib.zip`): `LunaSettings.kt` `getInt`, `LunaSettingsLoader.kt` (`Keycode` defaults), `LunaUIKeybindButton.kt` (Escape clears to `0`), `LunaSettingsUIModsPanel.kt` line 614, `LunaSettingsUISettingsPanel.kt` lines 330 and 341, `LunaSettingsConfigLoader.kt`.
+Sources (LunaLib 2.0.1, `libs/Lazylib_lunalib.zip`): `LunaSettings.kt` `getInt`, `LunaSettingsLoader.kt` (`Keycode` defaults), `LunaUIKeybindButton.kt` (key-down events only, Escape clears to `0`), `LunaSettingsUISettingsPanel.kt` `createRadioCard` (choices split on commas and trimmed), `LunaSettingsUIModsPanel.kt` line 614, `LunaSettingsUISettingsPanel.kt` lines 330 and 341, `LunaSettingsConfigLoader.kt`.
 
 ### Build and release tools
 
@@ -69,7 +70,7 @@ Tools live in `radialmenu/tools/`, run as standalone programs with JDK 17 from t
 |---|---|
 | `tools/ReleaseBuild.java` | `build <starsector-core>`: compiles `jars/src` into `jars/release/radialmenu.jar`; `package [tag]`: writes the ZIP, notes and stamped version file to `out/release/`. Reads `libs/` and the game jars, never writes to the game. [RELEASE.md](RELEASE.md) |
 | `tools/ReleaseBuildChecks.java` | Headless checks of changelog parsing, version stamping and the package file filter |
-| `tools/PlayerSettingsChecks.java` | Checks `data/config/LunaSettings.csv` against `config/Setting`: columns, `radial_menu_` prefix, unique ids, a `Setting` for every row, `Keycode`, `Int` or `Boolean` type, defaults, `Int` bounds, help text, escaped `%`, keycode sanitizing and count clamping. Run from the repository root after the compile gate: `java -cp <classes>:<compile jars> radialmenu.tools.PlayerSettingsChecks` |
+| `tools/PlayerSettingsChecks.java` | Checks `data/config/LunaSettings.csv` against `config/Setting`: columns, `radial_menu_` prefix, unique ids, a `Setting` for every row, `Keycode`, `Int`, `Boolean` or `Radio` type, defaults, `Int` bounds, `Radio` choices, help text, escaped `%`, keycode sanitizing and count clamping. Run from the repository root after the compile gate: `java -cp <classes>:<compile jars> radialmenu.tools.PlayerSettingsChecks` |
 | `.github/workflows/release.yml` | Runs the checks and a preview package on every push and PR; publishes on a version tag |
 
 ## Data identity
@@ -87,9 +88,13 @@ Tools live in `radialmenu/tools/`, run as standalone programs with JDK 17 from t
 | `radial_menu_hotkey` | Hotkey |
 | `radial_menu_second_hotkey` | Second hotkey |
 | `radial_menu_third_hotkey` | Third hotkey |
+| `radial_menu_mouse_button` | Mouse button |
 | `radial_menu_wheel_slots` | Main wheel slots |
 | `radial_menu_submenu_slots` | Submenu slots |
 | `radial_menu_icons_only` | Icons only |
+| `radial_menu_tinted_tiles` | Tinted tiles |
+| `radial_menu_tooltips` | Ability tooltips |
+| `radial_menu_select_by_direction` | Select by direction |
 | `radial_menu_lift` | Lift the hovered tile |
 | `radial_menu_no_animation` | No animations |
 
@@ -123,7 +128,7 @@ Runtime classes are in `radialmenu/` and `radialmenu/config/`. In `radialmenu/` 
 ### Engine and input
 
 - `CampaignRadialMenu` is the only campaign listener. It is registered transient on every game load, so it writes nothing into saves; `removeListenerOfClass` first keeps one instance per session. `addListener(Object, boolean isTransient)` in `ListenerManagerAPI`.
-- Hotkeys (`Setting.HOTKEYS`, by default `KEY_B`, `KEY_LCONTROL`, `KEY_RCONTROL`) are read with `Keyboard.isKeyDown` in `openingKeyHeld`, not from input events. A cleared key (`KEY_NONE`) is skipped; with all three cleared the wheel never opens. Escape is read from unconsumed key-down events and consumed.
+- Hotkeys (`Setting.HOTKEYS`, by default `KEY_B`, `KEY_LCONTROL`, `KEY_RCONTROL`) are read with `Keyboard.isKeyDown` in `openingKeyHeld`, not from input events. A cleared key (`KEY_NONE`) is skipped. `Setting.MOUSE_BUTTON` adds LWJGL button `choice + 1` (2 middle, 3 and 4 the side buttons), polled with `Mouse.isButtonDown`, which is false for a button the mouse lacks. Left and right are not offered: the left button is the edit hold and the right moves the fleet. With all three keys cleared and no mouse button the wheel never opens. Escape is read from unconsumed key-down events and consumed.
 - While the wheel is open, `processCampaignInputPreCore` consumes every unconsumed mouse and keyboard event and calls `setDisallowPlayerInteractionsForOneFrame`; `processCampaignInputPreFleetControl` does the same. Listener input priority is 100.
 - `allowed()` requires `GameState.CAMPAIGN`, an active game window, a player fleet, and no dialog, menu, core tab or hidden UI. The render callback cancels an open wheel when it stops being allowed.
 - The wheel does not pause campaign time.
