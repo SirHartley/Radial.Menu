@@ -522,15 +522,19 @@ public final class CampaignRadialMenu implements CampaignInputListener, Campaign
             glow[i] = ring.glow[i].getBrightness();
         }
         Color[] activeColors = new Color[count];
+        boolean[] greyed = new boolean[count];
         Color shade = Misc.setAlpha(Color.black, Math.round(255 * BACKGROUND_SHADE * grow));
         Color background = Misc.scaleAlpha(Misc.getDarkPlayerColor(), BACKGROUND_TINT * grow);
         // Draw backgrounds first so a neighboring sector cannot cover its label or icon.
         for (int i = 0; i < count; i++) {
             WheelEntry entry = ring.entries[i];
-            activeColors[i] = entry.fillHue == null ? Misc.getBasePlayerColor() : IconHue.tileColor(entry.fillHue);
+            // an owned ability that cannot be used right now, cooling down included, loses its colour
+            greyed[i] = entry.kind == Kind.ABILITY && !available(entry);
+            Color color = entry.fillHue == null ? Misc.getBasePlayerColor() : IconHue.tileColor(entry.fillHue);
+            activeColors[i] = greyed[i] ? grey(color) : color;
             drawMesh(ring, i, Mesh.FILL, grow, eased[i], shade, false);
-            Color tile = tinted && entry.tint != null && available(entry)
-                    ? Misc.scaleAlpha(entry.tint, BACKGROUND_TINT * grow) : background;
+            Color tile = greyed[i] ? grey(background)
+                    : tinted && entry.tint != null ? Misc.scaleAlpha(entry.tint, BACKGROUND_TINT * grow) : background;
             drawMesh(ring, i, Mesh.FILL, grow, eased[i], tile, false);
             if (glow[i] > 0f) {
                 // vanilla's button hover: an additive wash that whitens as it brightens
@@ -599,6 +603,12 @@ public final class CampaignRadialMenu implements CampaignInputListener, Campaign
             drawBand(start, start + ring.width, RadialSelection.TILE_GAP / 2f, Math.min(1f, hold / EDIT_HOLD),
                     outer - 4f, outer, 1f, 1f, Misc.getBrightPlayerColor());
         }
+    }
+
+    // same luminance, no hue
+    private static Color grey(Color color) {
+        int luminance = Math.round(0.299f * color.getRed() + 0.587f * color.getGreen() + 0.114f * color.getBlue());
+        return new Color(luminance, luminance, luminance, color.getAlpha());
     }
 
     private static float outerRadius(WheelRing ring, float grow, float eased) {
