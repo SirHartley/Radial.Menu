@@ -23,8 +23,7 @@ public final class RadialMenuModPlugin extends BaseModPlugin {
             throw new IllegalStateException("Cannot load " + RadialMenuConfig.PATH, failure);
         }
         layout = RadialLayout.load(config.abilityIds());
-        // submenus can use the mod icon, which no vanilla loader preloads
-        Global.getSettings().loadTexture(RadialLayout.MOD_ICON);
+        for (String icon : RadialLayout.modIcons()) Global.getSettings().loadTexture(icon);
         PlayerSettings.install();
     }
     @Override

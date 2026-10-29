@@ -67,12 +67,14 @@ public final class SlotPicker extends BaseCustomUIPanelPlugin implements Interac
         private static final float INSET = 4f;
 
         private final SpriteAPI sprite;
+        private final boolean modIcon;
         private final Color swatch;
         private final SlotPicker owner;
         private PositionAPI position;
 
         IconCell(String sprite, Color swatch, SlotPicker owner) {
             this.sprite = sprite == null ? null : Global.getSettings().getSprite(sprite);
+            this.modIcon = RadialLayout.isModIcon(sprite);
             this.swatch = swatch;
             this.owner = owner;
         }
@@ -100,6 +102,8 @@ public final class SlotPicker extends BaseCustomUIPanelPlugin implements Interac
             }
             if (sprite == null) return;
             sprite.setSize(position.getWidth() - 2f * INSET, position.getHeight() - 2f * INSET);
+            // the grid previews the colour the wheel will give a greyscale mod icon
+            sprite.setColor(modIcon ? IconHue.modIconColor(owner.hue) : Color.white);
             sprite.setAlphaMult(alphaMult);
             sprite.setNormalBlend();
             sprite.renderAtCenter(position.getCenterX(), position.getCenterY());
@@ -280,11 +284,10 @@ public final class SlotPicker extends BaseCustomUIPanelPlugin implements Interac
         mark();
     }
 
-    // only the fleet's own abilities, so the grid gives away none it lacks; every ability spec queues its icon
-    // at startup, and the mod plugin loads the mod icon
+    // the mod's icons, then only the fleet's own abilities, so the grid gives away none it lacks; every ability
+    // spec queues its icon at startup, and the mod plugin loads the mod's icons
     private List<String> iconChoices() {
-        Set<String> sprites = new LinkedHashSet<>();
-        sprites.add(RadialLayout.MOD_ICON);
+        Set<String> sprites = new LinkedHashSet<>(RadialLayout.modIcons());
         for (AbilityPlugin ability : abilities) {
             String icon = ability.getSpec().getIconName();
             if (icon != null && !icon.isEmpty()) sprites.add(icon);

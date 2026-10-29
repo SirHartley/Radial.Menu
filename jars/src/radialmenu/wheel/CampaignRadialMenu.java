@@ -583,9 +583,10 @@ public final class CampaignRadialMenu implements CampaignInputListener, Campaign
             float alpha = (available ? 1f : 0.4f) * grow;
             // without a name the icon takes the tile's centre
             float iconY = label != null ? y - 12f : y;
-            drawIconBackdrop(entry.iconName, entry.icon, x, iconY, alpha);
-            drawFadedIcon(entry.icon, x, iconY, alpha, false);
-            if (glow[i] > 0f) drawFadedIcon(entry.icon, x, iconY, alpha * glow[i] * 0.33f, true);
+            Color tint = RadialLayout.isModIcon(entry.iconName) ? IconHue.modIconColor(entry.fillHue) : Color.white;
+            drawIconBackdrop(entry.iconName, entry.icon, x, iconY, alpha, tint);
+            drawFadedIcon(entry.icon, x, iconY, alpha, tint, false);
+            if (glow[i] > 0f) drawFadedIcon(entry.icon, x, iconY, alpha * glow[i] * 0.33f, tint, true);
             if (label != null) drawLabel(label, x, y + 12f + label.computeTextHeight(label.getText()) / 2f, grow);
         }
         // Draw every border after all backgrounds; each tile is closed, so nothing is shared.
@@ -641,7 +642,7 @@ public final class CampaignRadialMenu implements CampaignInputListener, Campaign
         GL11.glEnd();
     }
 
-    private void drawIconBackdrop(String name, SpriteAPI icon, float x, float y, float alpha) {
+    private void drawIconBackdrop(String name, SpriteAPI icon, float x, float y, float alpha, Color tint) {
         Integer texture = backdropTextures.get(name);
         if (texture == null) {
             BufferedImage image = iconBackdrops.remove(name);
@@ -655,7 +656,7 @@ public final class CampaignRadialMenu implements CampaignInputListener, Campaign
         GL11.glDisable(GL11.GL_ALPHA_TEST);
         GL11.glTexEnvi(GL11.GL_TEXTURE_ENV, GL11.GL_TEXTURE_ENV_MODE, GL11.GL_MODULATE);
         GL11.glBindTexture(GL11.GL_TEXTURE_2D, texture);
-        GL11.glColor4f(1f, 1f, 1f, alpha);
+        GL11.glColor4f(tint.getRed() / 255f, tint.getGreen() / 255f, tint.getBlue() / 255f, alpha);
         // twice the icon's size, so the backdrop's fade reaches zero at the icon's corners
         float w = icon.getWidth(), h = icon.getHeight();
         // the upload starts at the image's top row and ui y points up, so texture v 0 belongs at the top
@@ -667,7 +668,7 @@ public final class CampaignRadialMenu implements CampaignInputListener, Campaign
         GL11.glEnd();
     }
 
-    private void drawFadedIcon(SpriteAPI icon, float x, float y, float alpha, boolean additive) {
+    private void drawFadedIcon(SpriteAPI icon, float x, float y, float alpha, Color tint, boolean additive) {
         GL11.glEnable(GL11.GL_TEXTURE_2D);
         GL11.glEnable(GL11.GL_BLEND);
         GL11.glBlendFunc(GL11.GL_SRC_ALPHA, additive ? GL11.GL_ONE : GL11.GL_ONE_MINUS_SRC_ALPHA);
@@ -683,7 +684,8 @@ public final class CampaignRadialMenu implements CampaignInputListener, Campaign
         GL11.glBegin(GL11.GL_QUADS);
         for (int i = 0; i < IconFade.MESH.length; i += 3) {
             float u = IconFade.MESH[i], v = IconFade.MESH[i + 1];
-            GL11.glColor4f(1f, 1f, 1f, alpha * IconFade.MESH[i + 2]);
+            GL11.glColor4f(tint.getRed() / 255f, tint.getGreen() / 255f, tint.getBlue() / 255f,
+                    alpha * IconFade.MESH[i + 2]);
             GL11.glTexCoord2f(tx + u * tw, ty + v * th);
             GL11.glVertex2f(left + u * width, bottom + v * height);
         }

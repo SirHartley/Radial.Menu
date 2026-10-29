@@ -3,6 +3,8 @@ package radialmenu.render;
 import java.awt.Color;
 import java.awt.image.BufferedImage;
 
+import com.fs.starfarer.api.util.Misc;
+
 /** Circular mean of the visible, moderately saturated pixels in an ability icon. */
 public final class IconHue {
     private IconHue() { }
@@ -32,5 +34,10 @@ public final class IconHue {
     // the colour a tile with this hue lights up in
     public static Color tileColor(float hue) {
         return Color.getHSBColor(hue, 0.55f, 1f);
+    }
+
+    // a greyscale mod icon takes its tile's colour, lightened so the symbol stays brighter than the tile
+    public static Color modIconColor(Float hue) {
+        return Misc.interpolateColor(hue == null ? Misc.getBasePlayerColor() : tileColor(hue), Color.white, 0.3f);
     }
 }
