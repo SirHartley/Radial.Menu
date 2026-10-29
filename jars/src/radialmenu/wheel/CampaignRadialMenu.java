@@ -648,11 +648,12 @@ public final class CampaignRadialMenu implements CampaignInputListener, Campaign
         GL11.glBindTexture(GL11.GL_TEXTURE_2D, texture);
         GL11.glColor4f(1f, 1f, 1f, alpha);
         float w = size * 1.25f, h = size * 1.25f;
+        // the upload starts at the image's top row and ui y points up, so texture v 0 belongs at the top
         GL11.glBegin(GL11.GL_QUADS);
-        GL11.glTexCoord2f(0f, 0f); GL11.glVertex2f(x - w, y - h);
-        GL11.glTexCoord2f(1f, 0f); GL11.glVertex2f(x + w, y - h);
-        GL11.glTexCoord2f(1f, 1f); GL11.glVertex2f(x + w, y + h);
-        GL11.glTexCoord2f(0f, 1f); GL11.glVertex2f(x - w, y + h);
+        GL11.glTexCoord2f(0f, 1f); GL11.glVertex2f(x - w, y - h);
+        GL11.glTexCoord2f(1f, 1f); GL11.glVertex2f(x + w, y - h);
+        GL11.glTexCoord2f(1f, 0f); GL11.glVertex2f(x + w, y + h);
+        GL11.glTexCoord2f(0f, 0f); GL11.glVertex2f(x - w, y + h);
         GL11.glEnd();
     }
 
