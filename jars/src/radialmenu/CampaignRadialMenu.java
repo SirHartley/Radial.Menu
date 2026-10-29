@@ -205,6 +205,10 @@ public final class CampaignRadialMenu implements CampaignInputListener, Campaign
         return iconHues.get(iconName);
     }
 
+    static Color hueColor(float hue) {
+        return Color.getHSBColor(hue, 0.55f, 1f);
+    }
+
     @Override
     public int getListenerInputPriority() { return 100; }
 
@@ -425,8 +429,7 @@ public final class CampaignRadialMenu implements CampaignInputListener, Campaign
         // Draw backgrounds first so a neighboring sector cannot cover its label or icon.
         for (int i = 0; i < count; i++) {
             WheelEntry entry = ring.entries[i];
-            activeColors[i] = entry.fillHue == null ? Misc.getBasePlayerColor()
-                    : Color.getHSBColor(entry.fillHue, 0.55f, 1f);
+            activeColors[i] = entry.fillHue == null ? Misc.getBasePlayerColor() : hueColor(entry.fillHue);
             drawMesh(ring, i, Mesh.FILL, grow, eased[i], shade, false);
             drawMesh(ring, i, Mesh.FILL, grow, eased[i], background, false);
             if (glow[i] > 0f) {
