@@ -23,6 +23,7 @@ import com.fs.starfarer.api.loading.AbilitySpecAPI;
 import com.fs.starfarer.api.ui.Alignment;
 import com.fs.starfarer.api.ui.Fonts;
 import com.fs.starfarer.api.ui.LabelAPI;
+import com.fs.starfarer.api.util.FaderUtil;
 import com.fs.starfarer.api.util.Misc;
 import org.lwjgl.input.Keyboard;
 import org.lwjgl.input.Mouse;
@@ -38,6 +39,8 @@ public final class CampaignRadialMenu implements CampaignInputListener, Campaign
 
     private static final float LAYER_DWELL = 0.25f;
     private static final float EDIT_HOLD = 0.5f;
+    private static final float LIFT_IN = 0.1f;
+    private static final float LIFT_OUT = 0.25f;
 
     private final RadialLayout layout;
     private final RadialSelection selection = new RadialSelection(0);
@@ -49,6 +52,8 @@ public final class CampaignRadialMenu implements CampaignInputListener, Campaign
     private FeatheredSector[] geometry = new FeatheredSector[0];
     private FeatheredSector[] liftedGeometry = new FeatheredSector[0];
     private float geometryScale;
+    private FaderUtil[] lift = new FaderUtil[0];
+    private long lastRenderNanos;
     private LabelAPI cancelLabel;
 
     private int pointerSector = -1;
@@ -108,6 +113,8 @@ public final class CampaignRadialMenu implements CampaignInputListener, Campaign
         geometry = new FeatheredSector[count];
         liftedGeometry = new FeatheredSector[count];
         geometryScale = 0f;
+        lift = new FaderUtil[count];
+        for (int i = 0; i < count; i++) lift[i] = new FaderUtil(0f, LIFT_IN, LIFT_OUT);
         pointerSector = -1;
         dwell = 0f;
         hold = 0f;
@@ -299,6 +306,7 @@ public final class CampaignRadialMenu implements CampaignInputListener, Campaign
         int hovered = selection.hoveredSector(
                 Global.getSettings().getMouseX(), Global.getSettings().getMouseY());
         int highlightedSector = hovered >= 0 && available(entries[hovered]) ? hovered : -1;
+        float[] eased = lift(highlightedSector);
         Color[] outlines = new Color[entries.length];
         Color[] activeColors = new Color[entries.length];
         // Keep the background readable against the campaign map without making it opaque.
@@ -309,13 +317,12 @@ public final class CampaignRadialMenu implements CampaignInputListener, Campaign
             // Draw backgrounds first so a neighboring sector cannot cover its label or icon.
             for (int i = 0; i < entries.length; i++) {
                 boolean available = available(entries[i]);
-                boolean highlighted = highlightedSector == i;
                 Color rim = !available ? Misc.getGrayColor() : Misc.getBasePlayerColor();
                 Color fill = entries[i].fillHue == null ? Misc.getDarkPlayerColor()
                         : Color.getHSBColor(entries[i].fillHue, 0.65f, 0.35f);
                 float[] hsb = Color.RGBtoHSB(fill.getRed(), fill.getGreen(), fill.getBlue(), null);
                 activeColors[i] = Color.getHSBColor(hsb[0], hsb[1], Math.min(1f, hsb[2] + 0.4f));
-                drawMesh((highlighted ? liftedGeometry[i] : geometry[i]).fill, Misc.setAlpha(fill, fillAlpha));
+                drawMesh(geometry[i].fill, liftedGeometry[i].fill, eased[i], Misc.setAlpha(fill, fillAlpha));
                 outlines[i] = Misc.scaleAlpha(rim, 0.75f);
             }
             // Active abilities pulse inward from every edge, even when temporarily unavailable.
@@ -324,12 +331,11 @@ public final class CampaignRadialMenu implements CampaignInputListener, Campaign
             for (int i = 0; i < entries.length; i++) {
                 if (entries[i].kind != Kind.ABILITY || !entries[i].action.isActive(ability(entries[i].action))) continue;
                 Color glow = Misc.setAlpha(activeColors[i], (int) (75 + 90 * pulse));
-                FeatheredSector sector = i == highlightedSector ? liftedGeometry[i] : geometry[i];
-                drawMesh(sector.innerGlow, glow);
-                drawMesh(sector.outerGlow, glow);
+                drawMesh(geometry[i].innerGlow, liftedGeometry[i].innerGlow, eased[i], glow);
+                drawMesh(geometry[i].outerGlow, liftedGeometry[i].outerGlow, eased[i], glow);
                 if (entries.length > 1) {
-                    drawMesh(sector.startGlow, glow);
-                    drawMesh(sector.endGlow, glow);
+                    drawMesh(geometry[i].startGlow, liftedGeometry[i].startGlow, eased[i], glow);
+                    drawMesh(geometry[i].endGlow, liftedGeometry[i].endGlow, eased[i], glow);
                 }
             }
             for (int i = 0; i < entries.length; i++) {
@@ -337,9 +343,8 @@ public final class CampaignRadialMenu implements CampaignInputListener, Campaign
                 AbilityPlugin ability = ability(entries[i].action);
                 if (ability == null || !ability.showCooldownIndicator()) continue;
                 double start = selection.sectorAngle(i) - selection.sectorWidth() / 2;
-                float outer = RadialSelection.OUTER_RADIUS + (i == highlightedSector ? RadialSelection.SELECTION_LIFT : 0f);
-                drawCooldown(start, start + selection.sectorWidth(), outer, ability.getCooldownFraction(),
-                        Misc.setAlpha(activeColors[i], 110));
+                drawCooldown(start, start + selection.sectorWidth(), outerRadius(eased[i]),
+                        ability.getCooldownFraction(), Misc.setAlpha(activeColors[i], 110));
             }
             GL11.glEnable(GL11.GL_TEXTURE_2D);
             for (int i = 0; i < entries.length; i++) {
@@ -348,7 +353,9 @@ public final class CampaignRadialMenu implements CampaignInputListener, Campaign
                 LabelAPI label = entry.label;
                 label.setColor(!available ? Misc.getGrayColor() : Misc.getTextColor());
                 double angle = selection.sectorAngle(i);
-                float radius = (RadialSelection.INNER_RADIUS + RadialSelection.OUTER_RADIUS) / 2;
+                // contents ride half the lift, so they stay centred in the taller slice
+                float radius = (RadialSelection.INNER_RADIUS + RadialSelection.OUTER_RADIUS) / 2
+                        + eased[i] * RadialSelection.SELECTION_LIFT / 2f;
                 float x = selection.getX() + (float) Math.cos(angle) * radius;
                 float y = selection.getY() + (float) Math.sin(angle) * radius;
                 float labelHeight = label.computeTextHeight(label.getText());
@@ -362,29 +369,29 @@ public final class CampaignRadialMenu implements CampaignInputListener, Campaign
             }
             // Draw every outline and shared divider once, after all backgrounds.
             for (int i = 0; i < entries.length; i++) {
-                FeatheredSector sector = i == highlightedSector ? liftedGeometry[i] : geometry[i];
+                FeatheredSector base = geometry[i];
+                FeatheredSector lifted = liftedGeometry[i];
                 Color core = Misc.scaleAlpha(Misc.getTextColor(), 0.75f);
-                drawMesh(sector.innerBorder, outlines[i]);
-                drawMesh(sector.outerBorder, outlines[i]);
-                drawMesh(sector.innerOutline, core);
-                drawMesh(sector.outerOutline, core);
+                drawMesh(base.innerBorder, lifted.innerBorder, eased[i], outlines[i]);
+                drawMesh(base.outerBorder, lifted.outerBorder, eased[i], outlines[i]);
+                drawMesh(base.innerOutline, lifted.innerOutline, eased[i], core);
+                drawMesh(base.outerOutline, lifted.outerOutline, eased[i], core);
                 if (entries.length > 1) {
-                    // Shared divider stops at the ordinary radius; the selected slice adds its own sides.
-                    drawMesh(geometry[i].dividerBorder, outlines[i]);
-                    drawMesh(geometry[i].divider, core);
-                    if (i == highlightedSector) {
-                        drawMesh(sector.extensionStartBorder, outlines[i]);
-                        drawMesh(sector.extensionEndBorder, outlines[i]);
-                        drawMesh(sector.extensionStart, core);
-                        drawMesh(sector.extensionEnd, core);
+                    // Shared divider stops at the ordinary radius; a lifted slice adds its own sides.
+                    drawMesh(base.dividerBorder, outlines[i]);
+                    drawMesh(base.divider, core);
+                    if (eased[i] > 0f) {
+                        drawMesh(base.extensionStartBorder, lifted.extensionStartBorder, eased[i], outlines[i]);
+                        drawMesh(base.extensionEndBorder, lifted.extensionEndBorder, eased[i], outlines[i]);
+                        drawMesh(base.extensionStart, lifted.extensionStart, eased[i], core);
+                        drawMesh(base.extensionEnd, lifted.extensionEnd, eased[i], core);
                     }
                 }
             }
             if (pointerSector >= 0 && hold > 0f) {
                 // the edit hold runs clockwise along the outer edge
                 double end = selection.sectorAngle(pointerSector) + selection.sectorWidth() / 2;
-                float outer = RadialSelection.OUTER_RADIUS
-                        + (pointerSector == highlightedSector ? RadialSelection.SELECTION_LIFT : 0f);
+                float outer = outerRadius(eased[pointerSector]);
                 drawBand(end - selection.sectorWidth() * Math.min(1f, hold / EDIT_HOLD), end,
                         outer - 4f, outer, 1f, 1f, Misc.getBrightPlayerColor());
             }
@@ -397,6 +404,26 @@ public final class CampaignRadialMenu implements CampaignInputListener, Campaign
         } finally {
             GL11.glPopAttrib();
         }
+    }
+
+    // the render callback gets no frame time and runs while paused, so the lift keeps its own clock
+    private float[] lift(int highlightedSector) {
+        long now = System.nanoTime();
+        float amount = lastRenderNanos == 0L ? 0f : Math.min(0.1f, (now - lastRenderNanos) / 1e9f);
+        lastRenderNanos = now;
+        float[] eased = new float[entries.length];
+        for (int i = 0; i < entries.length; i++) {
+            if (i == highlightedSector) lift[i].fadeIn();
+            else lift[i].fadeOut();
+            lift[i].advance(amount);
+            float brightness = lift[i].getBrightness();
+            eased[i] = brightness * brightness * (3f - 2f * brightness);
+        }
+        return eased;
+    }
+
+    private static float outerRadius(float eased) {
+        return RadialSelection.OUTER_RADIUS + eased * RadialSelection.SELECTION_LIFT;
     }
 
     private void updateGeometry() {
@@ -453,6 +480,27 @@ public final class CampaignRadialMenu implements CampaignInputListener, Campaign
             GL11.glColor4f(1f, 1f, 1f, alpha * IconFade.MESH[i + 2]);
             GL11.glTexCoord2f(tx + u * tw, ty + v * th);
             GL11.glVertex2f(x + (u - 0.5f) * width, y + (v - 0.5f) * height);
+        }
+        GL11.glEnd();
+    }
+
+    // base and lifted meshes share their angles, so vertices pair up and a blend is the in-between radius
+    private void drawMesh(float[] base, float[] lifted, float t, Color color) {
+        if (t <= 0f) {
+            drawMesh(base, color);
+            return;
+        }
+        GL11.glDisable(GL11.GL_TEXTURE_2D);
+        GL11.glEnable(GL11.GL_BLEND);
+        GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+        GL11.glShadeModel(GL11.GL_SMOOTH);
+        GL11.glDisable(GL11.GL_ALPHA_TEST);
+        GL11.glBegin(GL11.GL_QUADS);
+        for (int i = 0; i < base.length; i += 3) {
+            GL11.glColor4f(color.getRed() / 255f, color.getGreen() / 255f, color.getBlue() / 255f,
+                    color.getAlpha() / 255f * base[i + 2]);
+            GL11.glVertex2f(selection.getX() + base[i] + (lifted[i] - base[i]) * t,
+                    selection.getY() + base[i + 1] + (lifted[i + 1] - base[i + 1]) * t);
         }
         GL11.glEnd();
     }

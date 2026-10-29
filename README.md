@@ -76,4 +76,5 @@ In-game smoke test:
 - Cancel with the center, outside the ring, and Escape. Test every hotkey, combinations of hotkeys, and a stationary key tap near a screen edge.
 - Open Fleet/Intel, pause menus, or a dialog, and switch focus away. Confirm no wheel or unintended activation.
 - In LunaLib's mod settings, change one hotkey and clear another, then save. Confirm the wheel follows the new keys without a restart, after loading a save, and in a new game. Clear all three and confirm the wheel cannot open.
+- Sweep the mouse around the wheel and stop on a sector. Confirm the hovered slice grows out smoothly, eases back when left, and that this also works while the campaign is paused.
 - Test paused campaign, UI scaling, save/load, and a second campaign in the same process.

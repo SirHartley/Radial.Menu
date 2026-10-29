@@ -19,6 +19,7 @@ final class FeatheredSector {
     final float[] startGlow;
     final float[] endGlow;
 
+    // vertex count and order depend on the angles only, so CampaignRadialMenu blends two outer radii
     FeatheredSector(double start, double end, float inner, float outer, float screenScale) {
         float feather = 1f / screenScale; // One physical screen pixel, independent of UI scale.
         float[] radii = {inner, inner + feather, outer - feather, outer};
