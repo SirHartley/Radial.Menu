@@ -42,10 +42,14 @@ public final class PlayerSettingsChecks {
                 case KEYCODE -> "Keycode";
                 case INT -> "Int";
                 case BOOLEAN -> "Boolean";
+                case CHOICE -> "Radio";
             };
             require(row.get(2).equals(type), "type for " + setting);
-            String fallback = setting.type == Setting.Type.BOOLEAN ? String.valueOf(setting.fallback != 0)
-                    : String.valueOf(setting.fallback);
+            String fallback = switch (setting.type) {
+                case BOOLEAN -> String.valueOf(setting.fallback != 0);
+                case CHOICE -> setting.choices.get(setting.fallback);
+                default -> String.valueOf(setting.fallback);
+            };
             require(row.get(3).equals(fallback), "default for " + setting);
             require(!row.get(1).isBlank() && !row.get(5).isBlank(), "name and description for " + setting);
             require(setting.sanitize(null) == setting.fallback, "missing value for " + setting);
@@ -62,6 +66,17 @@ public final class PlayerSettingsChecks {
                     require(setting.sanitize(1000) == setting.max, "clamp maximum for " + setting);
                 }
                 case BOOLEAN -> require(setting.sanitize(0) == 0 && setting.sanitize(1) == 1, "boolean for " + setting);
+                case CHOICE -> {
+                    // luna splits secondaryValue on commas and trims each choice
+                    List<String> labels = new ArrayList<>();
+                    for (String label : row.get(4).split(",")) labels.add(label.trim());
+                    require(labels.equals(setting.choices), "choices for " + setting);
+                    require(setting.sanitize(-1) == setting.fallback, "unknown choice for " + setting);
+                    require(setting.sanitize(setting.choices.size()) == setting.fallback, "out of range choice for " + setting);
+                    for (int i = 0; i < setting.choices.size(); i++) {
+                        require(setting.sanitize(i) == i, "choice " + i + " kept for " + setting);
+                    }
+                }
             }
         }
         System.out.println("Player settings: " + checks + " checks passed");

@@ -324,7 +324,9 @@ public final class CampaignRadialMenu implements CampaignInputListener, Campaign
             int key = PlayerSettings.get(hotkey);
             if (key != Keyboard.KEY_NONE && Keyboard.isKeyDown(key)) return true;
         }
-        return false;
+        // choices after None are lwjgl buttons 2 (middle), 3 and 4; isButtonDown is false for one the mouse lacks
+        int choice = PlayerSettings.get(Setting.MOUSE_BUTTON);
+        return choice > 0 && Mouse.isButtonDown(choice + 1);
     }
 
     // mouse events are consumed while the wheel is open, so the button is polled like the hotkeys
