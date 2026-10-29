@@ -6,6 +6,8 @@ final class RadialSelection {
     static final float INNER_RADIUS = 42f;
     static final float OUTER_RADIUS = 180f;
     static final float SELECTION_LIFT = 20f;
+    // constant width of the gap between neighbouring tiles
+    static final float TILE_GAP = 6f;
     // the submenu ring starts past a lifted main tile, so the two never overlap
     static final float CHILD_INNER_RADIUS = OUTER_RADIUS + SELECTION_LIFT + 6f;
     static final float CHILD_OUTER_RADIUS = CHILD_INNER_RADIUS + 100f;

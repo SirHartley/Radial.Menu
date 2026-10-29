@@ -37,25 +37,13 @@ import radialmenu.config.Setting;
 public final class CampaignRadialMenu implements CampaignInputListener, CampaignUIRenderingListener {
 
     private enum Mesh {
-        FILL, INNER_OUTLINE, OUTER_OUTLINE, INNER_BORDER, OUTER_BORDER, DIVIDER, DIVIDER_BORDER,
-        END_DIVIDER, END_DIVIDER_BORDER, EXTENSION_START, EXTENSION_END, EXTENSION_START_BORDER,
-        EXTENSION_END_BORDER, INNER_GLOW, OUTER_GLOW, START_GLOW, END_GLOW;
+        FILL, OUTLINE, BORDER, INNER_GLOW, OUTER_GLOW, START_GLOW, END_GLOW;
 
         float[] of(FeatheredSector sector) {
             return switch (this) {
                 case FILL -> sector.fill;
-                case INNER_OUTLINE -> sector.innerOutline;
-                case OUTER_OUTLINE -> sector.outerOutline;
-                case INNER_BORDER -> sector.innerBorder;
-                case OUTER_BORDER -> sector.outerBorder;
-                case DIVIDER -> sector.divider;
-                case DIVIDER_BORDER -> sector.dividerBorder;
-                case END_DIVIDER -> sector.endDivider;
-                case END_DIVIDER_BORDER -> sector.endDividerBorder;
-                case EXTENSION_START -> sector.extensionStart;
-                case EXTENSION_END -> sector.extensionEnd;
-                case EXTENSION_START_BORDER -> sector.extensionStartBorder;
-                case EXTENSION_END_BORDER -> sector.extensionEndBorder;
+                case OUTLINE -> sector.outline;
+                case BORDER -> sector.border;
                 case INNER_GLOW -> sector.innerGlow;
                 case OUTER_GLOW -> sector.outerGlow;
                 case START_GLOW -> sector.startGlow;
@@ -442,10 +430,8 @@ public final class CampaignRadialMenu implements CampaignInputListener, Campaign
             Color pulseColor = Misc.setAlpha(activeColors[i], (int) ((75 + 90 * pulse) * grow));
             drawMesh(ring, i, Mesh.INNER_GLOW, grow, eased[i], pulseColor);
             drawMesh(ring, i, Mesh.OUTER_GLOW, grow, eased[i], pulseColor);
-            if (count > 1 || ring.standalone) {
-                drawMesh(ring, i, Mesh.START_GLOW, grow, eased[i], pulseColor);
-                drawMesh(ring, i, Mesh.END_GLOW, grow, eased[i], pulseColor);
-            }
+            drawMesh(ring, i, Mesh.START_GLOW, grow, eased[i], pulseColor);
+            drawMesh(ring, i, Mesh.END_GLOW, grow, eased[i], pulseColor);
         }
         for (int i = 0; i < count; i++) {
             WheelEntry entry = ring.entries[i];
@@ -479,29 +465,11 @@ public final class CampaignRadialMenu implements CampaignInputListener, Campaign
             if (glow[i] > 0f) drawFadedIcon(entry.icon, x, y - 10f, alpha * glow[i] * 0.33f, true);
             drawLabel(label, x, y + 12f + labelHeight / 2f, grow);
         }
-        // Draw every outline and shared divider once, after all backgrounds.
+        // Draw every outline after all backgrounds; each tile is closed, so nothing is shared.
         Color core = Misc.scaleAlpha(Misc.getTextColor(), 0.75f * grow);
         for (int i = 0; i < count; i++) {
-            drawMesh(ring, i, Mesh.INNER_BORDER, grow, eased[i], outlines[i]);
-            drawMesh(ring, i, Mesh.OUTER_BORDER, grow, eased[i], outlines[i]);
-            drawMesh(ring, i, Mesh.INNER_OUTLINE, grow, eased[i], core);
-            drawMesh(ring, i, Mesh.OUTER_OUTLINE, grow, eased[i], core);
-            if (ring.standalone) {
-                drawMesh(ring, i, Mesh.DIVIDER_BORDER, grow, eased[i], outlines[i]);
-                drawMesh(ring, i, Mesh.DIVIDER, grow, eased[i], core);
-                drawMesh(ring, i, Mesh.END_DIVIDER_BORDER, grow, eased[i], outlines[i]);
-                drawMesh(ring, i, Mesh.END_DIVIDER, grow, eased[i], core);
-            } else if (count > 1) {
-                // Shared divider stops at the ordinary radius; a lifted slice adds its own sides.
-                drawMesh(ring.base[i].dividerBorder, outlines[i]);
-                drawMesh(ring.base[i].divider, core);
-                if (eased[i] > 0f) {
-                    drawMesh(ring, i, Mesh.EXTENSION_START_BORDER, grow, eased[i], outlines[i]);
-                    drawMesh(ring, i, Mesh.EXTENSION_END_BORDER, grow, eased[i], outlines[i]);
-                    drawMesh(ring, i, Mesh.EXTENSION_START, grow, eased[i], core);
-                    drawMesh(ring, i, Mesh.EXTENSION_END, grow, eased[i], core);
-                }
-            }
+            drawMesh(ring, i, Mesh.BORDER, grow, eased[i], outlines[i]);
+            drawMesh(ring, i, Mesh.OUTLINE, grow, eased[i], core);
         }
         if (held >= 0 && hold > 0f && held < count) {
             // the edit hold runs clockwise along the outer edge
@@ -538,21 +506,6 @@ public final class CampaignRadialMenu implements CampaignInputListener, Campaign
             GL11.glVertex2f(selection.getX() + collapsed[i] + (base[i] - collapsed[i]) * grow + (lifted[i] - base[i]) * lift,
                     selection.getY() + collapsed[i + 1] + (base[i + 1] - collapsed[i + 1]) * grow
                             + (lifted[i + 1] - base[i + 1]) * lift);
-        }
-        GL11.glEnd();
-    }
-
-    private void drawMesh(float[] vertices, Color color) {
-        GL11.glDisable(GL11.GL_TEXTURE_2D);
-        GL11.glEnable(GL11.GL_BLEND);
-        GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
-        GL11.glShadeModel(GL11.GL_SMOOTH);
-        GL11.glDisable(GL11.GL_ALPHA_TEST);
-        GL11.glBegin(GL11.GL_QUADS);
-        for (int i = 0; i < vertices.length; i += 3) {
-            GL11.glColor4f(color.getRed() / 255f, color.getGreen() / 255f, color.getBlue() / 255f,
-                    color.getAlpha() / 255f * vertices[i + 2]);
-            GL11.glVertex2f(selection.getX() + vertices[i], selection.getY() + vertices[i + 1]);
         }
         GL11.glEnd();
     }

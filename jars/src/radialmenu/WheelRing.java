@@ -10,7 +10,7 @@ final class WheelRing {
     final double width;
     final float inner;
     final float outer;
-    // submenu tiles stand apart from their neighbours and grow out of the inner edge when shown
+    // submenu tiles grow out of the ring's inner edge when shown
     final boolean standalone;
     private final double[] centers;
 
@@ -54,9 +54,10 @@ final class WheelRing {
         collapsed = standalone ? new FeatheredSector[entries.length] : null;
         for (int i = 0; i < entries.length; i++) {
             double start = centers[i] - width / 2;
-            base[i] = new FeatheredSector(start, start + width, inner, outer, current);
-            lifted[i] = new FeatheredSector(start, start + width, inner, outer + RadialSelection.SELECTION_LIFT, current);
-            if (standalone) collapsed[i] = new FeatheredSector(start, start + width, inner, inner + 1f, current);
+            float gap = RadialSelection.TILE_GAP;
+            base[i] = new FeatheredSector(start, start + width, inner, outer, gap, current);
+            lifted[i] = new FeatheredSector(start, start + width, inner, outer + RadialSelection.SELECTION_LIFT, gap, current);
+            if (standalone) collapsed[i] = new FeatheredSector(start, start + width, inner, inner + 1f, gap, current);
         }
         scale = current;
     }
