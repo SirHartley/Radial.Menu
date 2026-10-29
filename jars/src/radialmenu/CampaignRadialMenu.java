@@ -61,8 +61,8 @@ public final class CampaignRadialMenu implements CampaignInputListener, Campaign
     private static final float GLOW_IN = 0.05f;
     private static final float GLOW_OUT = 0.25f;
     // black under the dark ui colour, so the map shows through a little, like vanilla's dimmed dialogs
-    private static final float BACKGROUND_SHADE = 0.4f;
-    private static final float BACKGROUND_TINT = 0.8f;
+    private static final float BACKGROUND_SHADE = 0.3f;
+    private static final float BACKGROUND_TINT = 0.65f;
     // share of the way from the dark ui colour to its twin in the tile's hue, for tinted tiles at rest
     private static final float REST_TINT = 0.7f;
     // measured from a vanilla ability slot: the outer line shows the base ui colour at 70%, the inner one at 35%
@@ -79,6 +79,7 @@ public final class CampaignRadialMenu implements CampaignInputListener, Campaign
     private final Map<String, Float> iconHues = new HashMap<String, Float>();
     private final Map<String, BufferedImage> iconBackdrops = new HashMap<String, BufferedImage>();
     private final Map<String, Integer> backdropTextures = new HashMap<String, Integer>();
+    private final AbilityTooltip tooltip = new AbilityTooltip();
     private LabelAPI cancelLabel;
 
     private WheelRing main = new WheelRing(new WheelEntry[0], new double[0], 0, 0f, 0f, false, 0f, 0f, 0f, 0f);
@@ -89,8 +90,12 @@ public final class CampaignRadialMenu implements CampaignInputListener, Campaign
     private boolean lift = true;
     private boolean names;
     private boolean tinted;
+    private boolean tooltips;
 
     private Target pointer = Target.NONE;
+    private Target tooltipTarget = Target.NONE;
+    private float tooltipTime;
+    private boolean tooltipExpanded;
     private float hold;
     private long lastInputNanos;
     private long lastRenderNanos;
@@ -104,6 +109,7 @@ public final class CampaignRadialMenu implements CampaignInputListener, Campaign
         lift = PlayerSettings.enabled(Setting.LIFT);
         names = !PlayerSettings.enabled(Setting.ICONS_ONLY);
         tinted = PlayerSettings.enabled(Setting.TINTED_TILES);
+        tooltips = PlayerSettings.enabled(Setting.TOOLTIPS);
         selection.setDirectional(PlayerSettings.enabled(Setting.SELECT_BY_DIRECTION));
         extension.setDuration(animate ? EXTEND_IN : 0f, animate ? EXTEND_OUT : 0f);
         int count = PlayerSettings.get(Setting.WHEEL_SLOTS);
@@ -124,6 +130,8 @@ public final class CampaignRadialMenu implements CampaignInputListener, Campaign
         extension.forceOut();
         pointer = Target.NONE;
         hold = 0f;
+        tooltipTarget = Target.NONE;
+        tooltipTime = 0f;
     }
 
     private void extend(int parent) {
@@ -259,10 +267,14 @@ public final class CampaignRadialMenu implements CampaignInputListener, Campaign
         boolean wasOpen = selection.isOpen();
         boolean cancel = false;
         // Read only unconsumed events. Escape cancels until all opening keys are released.
+        // F1 is vanilla's default expand-tooltip key; the player's binding is not in the api
         for (InputEventAPI event : events) {
-            if (!event.isConsumed() && event.isKeyDownEvent()
-                    && event.getEventValue() == Keyboard.KEY_ESCAPE && wasOpen) {
+            if (event.isConsumed() || !event.isKeyDownEvent() || !wasOpen) continue;
+            if (event.getEventValue() == Keyboard.KEY_ESCAPE) {
                 cancel = true;
+                event.consume();
+            } else if (event.getEventValue() == Keyboard.KEY_F1) {
+                tooltipExpanded = !tooltipExpanded;
                 event.consume();
             }
         }
@@ -380,8 +392,6 @@ public final class CampaignRadialMenu implements CampaignInputListener, Campaign
     public void processCampaignInputPostCore(List<InputEventAPI> events) { }
     @Override
     public void renderInUICoordsBelowUI(ViewportAPI viewport) { }
-    @Override
-    public void renderInUICoordsAboveUIAndTooltips(ViewportAPI viewport) { }
 
     @Override
     public void renderInUICoordsAboveUIBelowTooltips(ViewportAPI viewport) {
@@ -393,6 +403,13 @@ public final class CampaignRadialMenu implements CampaignInputListener, Campaign
         float amount = renderTime();
         Target target = selection.target(Global.getSettings().getMouseX(), Global.getSettings().getMouseY());
         WheelEntry hovered = entryAt(target);
+        if (target.equals(tooltipTarget)) {
+            tooltipTime += amount;
+        } else {
+            tooltipTarget = target;
+            tooltipTime = 0f;
+            tooltipExpanded = false;
+        }
         boolean lit = hovered != null && available(hovered);
         int parent = selection.extended();
         int mainLit = parent >= 0 ? parent : lit && target.child() < 0 ? target.sector() : -1;
@@ -411,6 +428,28 @@ public final class CampaignRadialMenu implements CampaignInputListener, Campaign
             }
             cancelLabel.setColor(Misc.getTextColor());
             drawLabel(cancelLabel, selection.getX(), selection.getY(), 1f);
+        } finally {
+            GL11.glPopAttrib();
+        }
+    }
+
+    @Override
+    public void renderInUICoordsAboveUIAndTooltips(ViewportAPI viewport) {
+        if (!tooltips || !selection.isOpen() || !allowed() || tooltipTime < AbilityTooltip.DELAY) return;
+        WheelEntry entry = entryAt(tooltipTarget);
+        if (entry == null || entry.kind != Kind.ABILITY) return;
+        AbilityPlugin ability = ability(entry.action);
+        if (ability == null || !ability.hasTooltip()) return;
+        boolean child = tooltipTarget.child() >= 0;
+        WheelRing ring = child ? submenu : main;
+        double angle = ring.center(child ? tooltipTarget.child() : tooltipTarget.sector());
+        float extent = (submenu != null ? RadialSelection.CHILD_OUTER_RADIUS : RadialSelection.OUTER_RADIUS)
+                + RadialSelection.SELECTION_LIFT;
+        float y = selection.getY() + (float) Math.sin(angle) * ring.middle();
+        GL11.glPushAttrib(GL11.GL_ALL_ATTRIB_BITS);
+        try {
+            tooltip.render(ability, tooltipExpanded, selection.getX() - extent, selection.getX() + extent, y,
+                    Math.cos(angle) >= 0);
         } finally {
             GL11.glPopAttrib();
         }
