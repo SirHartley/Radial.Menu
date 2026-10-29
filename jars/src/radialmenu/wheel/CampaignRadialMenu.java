@@ -199,7 +199,9 @@ public final class CampaignRadialMenu implements CampaignInputListener, Campaign
             // a saved submenu icon can name a sprite from a mod that is no longer loaded
             if (entry.iconName != null) entry.icon = Global.getSettings().getSprite(entry.iconName);
             if (entry.icon != null) entry.icon.setNormalBlend();
-            entry.fillHue = entry.hue != null ? entry.hue : entry.iconName == null ? null : iconHue(entry.iconName);
+            // every icon gets its backdrop, even when a submenu's own colour replaces the icon's hue
+            Float iconHue = entry.iconName == null ? null : readIcon(entry.iconName);
+            entry.fillHue = entry.hue != null ? entry.hue : iconHue;
             entry.tint = entry.fillHue == null ? null : restTint(entry.fillHue);
             entry.label = names ? label(entry.title, ring, i, entry.icon != null) : null;
         }
@@ -223,7 +225,8 @@ public final class CampaignRadialMenu implements CampaignInputListener, Campaign
         return label;
     }
 
-    private Float iconHue(String iconName) {
+    // reads an icon once, caching its hue and the backdrop drawn behind it
+    private Float readIcon(String iconName) {
         if (!iconHues.containsKey(iconName)) {
             Float hue = null;
             try (InputStream stream = Global.getSettings().openStream(iconName)) {
