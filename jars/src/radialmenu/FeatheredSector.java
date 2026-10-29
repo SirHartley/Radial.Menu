@@ -10,6 +10,8 @@ final class FeatheredSector {
     final float[] innerBorder;
     final float[] outerBorder;
     final float[] dividerBorder;
+    final float[] endDivider;
+    final float[] endDividerBorder;
     final float[] extensionStart;
     final float[] extensionEnd;
     final float[] extensionStartBorder;
@@ -37,6 +39,9 @@ final class FeatheredSector {
         outerBorder = arcs(start, end, new float[] {outer - 1.5f * feather, outer - 0.5f * feather,
                 outer + 0.5f * feather, outer + 1.5f * feather}, new float[] {0f, 1f, 1f, 0f});
         dividerBorder = divider(start, radii, lineCoverage, 1.5f * feather);
+        // submenu tiles stand alone, so they also draw the side a neighbour would own
+        endDivider = divider(end, radii, lineCoverage, feather);
+        endDividerBorder = divider(end, radii, lineCoverage, 1.5f * feather);
         float[] extensionRadii = {RadialSelection.OUTER_RADIUS, outer};
         float[] extensionCoverage = {1f, 1f};
         extensionStart = divider(start, extensionRadii, extensionCoverage, feather);

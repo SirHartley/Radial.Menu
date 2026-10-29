@@ -7,7 +7,7 @@
 2. Move the mouse out of the center and onto the desired sector.
 3. Release the opening key to activate the highlighted action.
 
-Rest the mouse on a **Submenu** sector for a quarter of a second to open it in place. Its **Back** sector at the bottom returns to the main wheel the same way. Submenus hold abilities only; a submenu cannot contain another submenu.
+Moving onto a **Submenu** tile opens it at once: its tiles extend on an outer ring, centered on the submenu's direction. Keep moving outward onto one of them and release to use it. Moving back onto another main tile, or into the center, closes the submenu. Submenus hold abilities only; a submenu cannot contain another submenu.
 
 To change a slot, hold the left mouse button on it for half a second while the wheel is open. An arc along the slot's outer edge shows the hold. A list of your fleet's abilities opens: pick one for the slot, empty it, or, on the main wheel, make it a submenu with its own icon and colour. The game pauses while the list is open and resumes when it closes. Changes are saved for every campaign.
 
@@ -17,7 +17,7 @@ The wheel is kept inside the screen and uses the game's virtual UI coordinates, 
 
 ## Abilities
 
-By default the main wheel has 5 slots and each submenu 5 slots plus Back. Change both under **Wheel** in LunaLib's mod settings: 1 to 10 main wheel slots and 1 to 9 submenu slots. Slots past the count keep their abilities and return when you raise it. Until you change a slot, the main wheel holds these abilities, clockwise from the top:
+By default the main wheel has 5 slots and each submenu 5 slots. Change both under **Wheel** in LunaLib's mod settings, from 1 to 10 each. Slots past the count keep their abilities and return when you raise it. Until you change a slot, the main wheel holds these abilities, clockwise from the top:
 
 1. **Scavenge** (salvage): use vanilla Scavenge inside an unscavenged debris field.
 2. **Sustained Burn**: toggle on or off.
@@ -68,8 +68,8 @@ In-game smoke test:
 - With no saved layout, change the configured order and add an ability the player does not own. Restart and confirm the order is respected and the unowned entry is greyed out in its slot. Try an empty list and a single ability.
 - Learn or lose an assigned ability between gestures. Confirm the next press updates the slot, while an already-open wheel keeps its targets stable and cannot activate a removed ability.
 - Hold the left mouse button on a slot for half a second. Confirm the arc fills and the ability list opens. Assign an ability, empty a slot, and cancel. Confirm the wheel shows each change and that a quick click does nothing.
-- Make a main wheel slot a submenu, choose an ability icon, then the mod icon, then a colour. Rest on it to open it, assign abilities inside, confirm the edit list offers no Submenu there, and use Back. Confirm a release over Submenu, Back or Empty does nothing.
-- Under Wheel in LunaLib's mod settings, set 10 main wheel slots and 9 submenu slots, then 1 of each. Confirm the next wheel follows without a restart, labels stay inside their sectors, Back stays at the bottom, and hidden slots keep their abilities.
+- Make a main wheel slot a submenu, choose an ability icon, then the mod icon, then a colour. Move onto it and confirm its tiles extend at once on the outer ring. Move outward onto them, assign abilities there, and confirm the edit list offers no Submenu. Move onto a neighbouring main tile and into the center, and confirm the submenu closes. Confirm a release over Submenu or Empty does nothing, and try a submenu at the bottom and one next to a screen edge.
+- Under Wheel in LunaLib's mod settings, set 10 slots of each, then 1 of each. Confirm the next wheel follows without a restart, labels stay inside their tiles, and hidden slots keep their abilities.
 - Load another save and restart the game. Confirm the layout is the same. Delete `radial_menu_layout.json.data` and confirm the defaults return.
 - Toggle Sustained Burn, Transponder, and Go Dark on and off. Verify the ability names and icons, wind-up, and normal ability incompatibilities. When turning the transponder on would reveal a hostile identity, verify the native confirmation appears and Cancel leaves it off.
 - Activate Emergency Burn once. Verify the normal fuel cost/effect and a disabled sector during its active/cooldown period, with the cooldown fill growing from the outer edge to the inner ring. Try without enough fuel.
