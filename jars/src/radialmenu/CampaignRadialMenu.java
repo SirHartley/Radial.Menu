@@ -66,6 +66,8 @@ public final class CampaignRadialMenu implements CampaignInputListener, Campaign
     // measured from a vanilla ability slot: the outer line shows the base ui colour at 70%, the inner one at 35%
     private static final float EDGE_ALPHA = 0.7f;
     private static final float INNER_EDGE_ALPHA = 0.35f;
+    // the two 1-unit border lines cover the outer 2 units of a tile
+    private static final float BORDER = 2f;
     // backdrop glow size; the icons themselves draw at native size so they stay sharp
     private static final float BACKDROP = 44f;
     private static final float NAMED_BACKDROP = 36f;
@@ -493,9 +495,9 @@ public final class CampaignRadialMenu implements CampaignInputListener, Campaign
         }
         if (held >= 0 && hold > 0f && held < count) {
             // the edit hold runs clockwise along the outer edge
-            double end = ring.center(held) + ring.width / 2;
+            double start = ring.center(held) - ring.width / 2;
             float outer = outerRadius(ring, grow, eased[held]);
-            drawBand(end - ring.width * Math.min(1f, hold / EDIT_HOLD), end,
+            drawBand(start, start + ring.width, RadialSelection.TILE_GAP / 2f, Math.min(1f, hold / EDIT_HOLD),
                     outer - 4f, outer, 1f, 1f, Misc.getBrightPlayerColor());
         }
     }
@@ -582,17 +584,22 @@ public final class CampaignRadialMenu implements CampaignInputListener, Campaign
         return Math.round(value * scale) / scale;
     }
 
-    // fills from the outer edge inward; vanilla's fraction is 0 at the start of the cooldown and 1 at its end
+    // fills from the outer edge inward inside the borders; vanilla's fraction is 0 at the start of the cooldown
+    // and 1 at its end
     private void drawCooldown(double start, double end, float ringInner, float outer, float fraction, Color color) {
         float feather = 1f / Global.getSettings().getScreenScaleMult();
-        float inner = ringInner + feather;
-        float top = outer - feather;
+        float side = RadialSelection.TILE_GAP / 2f + BORDER;
+        float inner = ringInner + BORDER;
+        float top = outer - BORDER;
+        if (top <= inner) return;
         float front = top - (top - inner) * Math.max(0f, Math.min(1f, fraction));
-        drawBand(start, end, front - feather, front, 0f, 1f, color);
-        drawBand(start, end, front, top, 1f, 1f, color);
+        drawBand(start, end, side, 1f, Math.max(inner, front - feather), front, 0f, 1f, color);
+        drawBand(start, end, side, 1f, front, top, 1f, 1f, color);
     }
 
-    private void drawBand(double start, double end, float inner, float outer,
+    // an arc band between straight sides side units inside the boundary rays, like the tile's own sides;
+    // portion keeps that share of it, measured clockwise from end
+    private void drawBand(double start, double end, float side, float portion, float inner, float outer,
                           float innerCoverage, float outerCoverage, Color color) {
         GL11.glDisable(GL11.GL_TEXTURE_2D);
         GL11.glEnable(GL11.GL_BLEND);
@@ -602,14 +609,21 @@ public final class CampaignRadialMenu implements CampaignInputListener, Campaign
         int steps = FeatheredSector.steps(start, end);
         GL11.glBegin(GL11.GL_QUADS);
         for (int step = 0; step < steps; step++) {
-            double a = start + (end - start) * step / steps;
-            double b = start + (end - start) * (step + 1) / steps;
-            bandVertex(a, inner, innerCoverage, color);
-            bandVertex(a, outer, outerCoverage, color);
-            bandVertex(b, outer, outerCoverage, color);
-            bandVertex(b, inner, innerCoverage, color);
+            bandVertex(bandAngle(start, end, side, portion, inner, step, steps), inner, innerCoverage, color);
+            bandVertex(bandAngle(start, end, side, portion, outer, step, steps), outer, outerCoverage, color);
+            bandVertex(bandAngle(start, end, side, portion, outer, step + 1, steps), outer, outerCoverage, color);
+            bandVertex(bandAngle(start, end, side, portion, inner, step + 1, steps), inner, innerCoverage, color);
         }
         GL11.glEnd();
+    }
+
+    // the full band's corners at different radii lie on one straight side, so the quads keep it straight
+    private static double bandAngle(double start, double end, float side, float portion, float radius,
+                                    int step, int steps) {
+        double inset = Math.asin(Math.min(1f, side / Math.max(radius, side)));
+        double high = end - inset;
+        double low = high - Math.max(0, end - start - 2 * inset) * portion;
+        return low + (high - low) * step / steps;
     }
 
     private void bandVertex(double angle, float radius, float coverage, Color color) {
