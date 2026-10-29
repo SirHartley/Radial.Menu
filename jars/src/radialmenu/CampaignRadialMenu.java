@@ -61,8 +61,8 @@ public final class CampaignRadialMenu implements CampaignInputListener, Campaign
     private static final float GLOW_IN = 0.05f;
     private static final float GLOW_OUT = 0.25f;
     // black under the dark ui colour, so the map shows through a little, like vanilla's dimmed dialogs
-    private static final float BACKGROUND_SHADE = 0.4f;
-    private static final float BACKGROUND_TINT = 0.8f;
+    private static final float BACKGROUND_SHADE = 0.3f;
+    private static final float BACKGROUND_TINT = 0.65f;
     // share of the way from the dark ui colour to its twin in the tile's hue, for tinted tiles at rest
     private static final float REST_TINT = 0.7f;
     // measured from a vanilla ability slot: the outer line shows the base ui colour at 70%, the inner one at 35%
