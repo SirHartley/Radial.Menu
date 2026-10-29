@@ -1,10 +1,7 @@
 name: Release
 
+# manual only, actions minutes cost money: run from a branch for a preview, from a version tag to publish
 on:
-  push:
-    branches: ["**"]
-    tags: ["*"]
-  pull_request:
   workflow_dispatch:
 
 permissions:
@@ -56,7 +53,7 @@ jobs:
           retention-days: 14
 
   publish:
-    if: github.event_name == 'push' && github.ref_type == 'tag'
+    if: github.ref_type == 'tag'
     needs: package
     runs-on: ubuntu-latest
     permissions:
