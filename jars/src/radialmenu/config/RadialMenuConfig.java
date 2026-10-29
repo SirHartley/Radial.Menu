@@ -1,4 +1,4 @@
-package radialmenu;
+package radialmenu.config;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -11,18 +11,18 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 // default layout: ability ids for the first main wheel slots, used until the player edits the wheel
-final class RadialMenuConfig {
-    static final String PATH = "data/config/radial_menu.json";
+public final class RadialMenuConfig {
+    public static final String PATH = "data/config/radial_menu.json";
     private final List<String> abilityIds;
 
     private RadialMenuConfig(List<String> abilityIds) {
         this.abilityIds = Collections.unmodifiableList(abilityIds);
     }
 
-    static RadialMenuConfig fromJSON(JSONObject json) throws JSONException {
+    public static RadialMenuConfig fromJSON(JSONObject json) throws JSONException {
         JSONArray entries = json.getJSONArray("abilities");
-        if (entries.length() > RadialLayout.MAIN_SLOTS) {
-            throw new IllegalArgumentException(PATH + ": at most " + RadialLayout.MAIN_SLOTS + " abilities");
+        if (entries.length() > Setting.WHEEL_SLOTS.max) {
+            throw new IllegalArgumentException(PATH + ": at most " + Setting.WHEEL_SLOTS.max + " abilities");
         }
         List<String> ids = new ArrayList<String>();
         Set<String> seen = new HashSet<String>();
@@ -40,7 +40,7 @@ final class RadialMenuConfig {
         return new RadialMenuConfig(ids);
     }
 
-    List<String> abilityIds() {
+    public List<String> abilityIds() {
         return abilityIds;
     }
 }
