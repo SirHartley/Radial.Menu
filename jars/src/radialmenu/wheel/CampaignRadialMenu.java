@@ -99,12 +99,15 @@ public final class CampaignRadialMenu implements CampaignInputListener, Campaign
     private boolean names;
     private boolean tinted;
     private boolean tooltips;
+    private boolean pauseWhileOpen;
 
     private Target pointer = Target.NONE;
     private Target tooltipTarget = Target.NONE;
     private float tooltipTime;
     private boolean tooltipExpanded;
     private boolean returnMousePending;
+    private boolean holdingPause;
+    private boolean pausedBefore;
     // lwjgl window pixels, the space setCursorPosition takes
     private int pressMouseX;
     private int pressMouseY;
@@ -123,6 +126,7 @@ public final class CampaignRadialMenu implements CampaignInputListener, Campaign
         tinted = PlayerSettings.enabled(Setting.TINTED_TILES);
         tooltips = PlayerSettings.enabled(Setting.TOOLTIPS);
         returnMousePending = PlayerSettings.enabled(Setting.RETURN_MOUSE);
+        pauseWhileOpen = PlayerSettings.enabled(Setting.PAUSE);
         pressMouseX = Mouse.getX();
         pressMouseY = Mouse.getY();
         selection.setDirectional(PlayerSettings.enabled(Setting.SELECT_BY_DIRECTION));
@@ -296,6 +300,11 @@ public final class CampaignRadialMenu implements CampaignInputListener, Campaign
         if (usableUI && openingKeyHeld && !selection.isHeld()) openWheel();
         boolean released = selection.update(openingKeyHeld, usableUI, cancel, mouseX, mouseY,
                 Global.getSettings().getScreenWidth(), Global.getSettings().getScreenHeight());
+        if (!wasOpen && selection.isOpen() && pauseWhileOpen) {
+            pausedBefore = Global.getSector().isPaused();
+            Global.getSector().setPaused(true);
+            holdingPause = true;
+        }
         if (wasOpen || selection.isOpen()) {
             for (InputEventAPI event : events) {
                 if (event.isConsumed()) continue;
@@ -310,9 +319,18 @@ public final class CampaignRadialMenu implements CampaignInputListener, Campaign
             if (entry != null) activate(entry);
         }
         // the render pass and an edit hold can close the wheel too, so this runs on the first input frame after
-        if (returnMousePending && !selection.isOpen()) {
+        if (!selection.isOpen()) afterClose();
+    }
+
+    private void afterClose() {
+        if (returnMousePending) {
             returnMousePending = false;
             Mouse.setCursorPosition(pressMouseX, pressMouseY);
+        }
+        if (holdingPause) {
+            holdingPause = false;
+            // a dialog opened from the wheel, such as SlotPicker, now holds the pause and lifts it when dismissed
+            if (!Global.getSector().getCampaignUI().isShowingDialog()) Global.getSector().setPaused(pausedBefore);
         }
     }
 

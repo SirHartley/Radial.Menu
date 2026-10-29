@@ -17,6 +17,7 @@ public enum Setting {
     TINTED_TILES("radial_menu_tinted_tiles", false),
     TOOLTIPS("radial_menu_tooltips", true),
     RETURN_MOUSE("radial_menu_return_mouse", false),
+    PAUSE("radial_menu_pause", false),
     SELECT_BY_DIRECTION("radial_menu_select_by_direction", false),
     LIFT("radial_menu_lift", true),
     NO_ANIMATION("radial_menu_no_animation", false);
