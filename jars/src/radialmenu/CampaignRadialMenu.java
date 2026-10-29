@@ -69,6 +69,12 @@ public final class CampaignRadialMenu implements CampaignInputListener, Campaign
     private static final float LIFT_OUT = 0.15f;
     private static final float EXTEND_IN = 0.1f;
     private static final float EXTEND_OUT = 0.08f;
+    // vanilla button hover timing
+    private static final float GLOW_IN = 0.05f;
+    private static final float GLOW_OUT = 0.25f;
+    // black under the dark ui colour, so the map shows through a little, like vanilla's dimmed dialogs
+    private static final float BACKGROUND_SHADE = 0.4f;
+    private static final float BACKGROUND_TINT = 0.8f;
 
     private final RadialLayout layout;
     private final RadialSelection selection = new RadialSelection(0);
@@ -77,7 +83,7 @@ public final class CampaignRadialMenu implements CampaignInputListener, Campaign
     private final Map<String, Integer> backdropTextures = new HashMap<String, Integer>();
     private LabelAPI cancelLabel;
 
-    private WheelRing main = new WheelRing(new WheelEntry[0], new double[0], 0, 0f, 0f, false, LIFT_IN, LIFT_OUT);
+    private WheelRing main = new WheelRing(new WheelEntry[0], new double[0], 0, 0f, 0f, false, 0f, 0f, 0f, 0f);
     private WheelRing submenu;
     private final FaderUtil extension = new FaderUtil(0f, EXTEND_IN, EXTEND_OUT);
 
@@ -109,7 +115,8 @@ public final class CampaignRadialMenu implements CampaignInputListener, Campaign
         double[] centers = new double[count];
         for (int i = 0; i < count; i++) centers[i] = selection.sectorAngle(i);
         main = prepare(new WheelRing(entries, centers, selection.sectorWidth(),
-                RadialSelection.INNER_RADIUS, RadialSelection.OUTER_RADIUS, false, liftIn(), liftOut()));
+                RadialSelection.INNER_RADIUS, RadialSelection.OUTER_RADIUS, false, liftIn(), liftOut(),
+                glowIn(), glowOut()));
         submenu = null;
         extension.forceOut();
         pointer = Target.NONE;
@@ -128,7 +135,8 @@ public final class CampaignRadialMenu implements CampaignInputListener, Campaign
             centers[i] = selection.childAngle(i);
         }
         submenu = prepare(new WheelRing(entries, centers, RadialSelection.CHILD_WIDTH,
-                RadialSelection.CHILD_INNER_RADIUS, RadialSelection.CHILD_OUTER_RADIUS, true, liftIn(), liftOut()));
+                RadialSelection.CHILD_INNER_RADIUS, RadialSelection.CHILD_OUTER_RADIUS, true, liftIn(), liftOut(),
+                glowIn(), glowOut()));
         extension.forceOut();
         extension.fadeIn();
     }
@@ -140,6 +148,14 @@ public final class CampaignRadialMenu implements CampaignInputListener, Campaign
 
     private float liftOut() {
         return animate ? LIFT_OUT : 0f;
+    }
+
+    private float glowIn() {
+        return animate ? GLOW_IN : 0f;
+    }
+
+    private float glowOut() {
+        return animate ? GLOW_OUT : 0f;
     }
 
     private void retract() {
@@ -385,26 +401,36 @@ public final class CampaignRadialMenu implements CampaignInputListener, Campaign
         int count = ring.entries.length;
         ring.updateGeometry();
         float[] eased = new float[count];
+        float[] glow = new float[count];
         for (int i = 0; i < count; i++) {
             if (i == lit && lift) ring.lift[i].fadeIn();
             else ring.lift[i].fadeOut();
             ring.lift[i].advance(amount);
             eased[i] = ease(ring.lift[i].getBrightness());
+            if (i == lit) ring.glow[i].fadeIn();
+            else ring.glow[i].fadeOut();
+            ring.glow[i].advance(amount);
+            glow[i] = ring.glow[i].getBrightness();
         }
         Color[] outlines = new Color[count];
         Color[] activeColors = new Color[count];
-        // Keep the background readable against the campaign map without making it opaque.
-        int fillAlpha = Math.round(Misc.getDarkPlayerColor().getAlpha() * 0.6f * grow);
+        Color shade = Misc.setAlpha(Color.black, Math.round(255 * BACKGROUND_SHADE * grow));
+        Color background = Misc.scaleAlpha(Misc.getDarkPlayerColor(), BACKGROUND_TINT * grow);
         // Draw backgrounds first so a neighboring sector cannot cover its label or icon.
         for (int i = 0; i < count; i++) {
             WheelEntry entry = ring.entries[i];
             boolean available = available(entry);
             Color rim = !available ? Misc.getGrayColor() : Misc.getBasePlayerColor();
-            Color fill = entry.fillHue == null ? Misc.getDarkPlayerColor()
-                    : Color.getHSBColor(entry.fillHue, 0.65f, 0.35f);
-            float[] hsb = Color.RGBtoHSB(fill.getRed(), fill.getGreen(), fill.getBlue(), null);
-            activeColors[i] = Color.getHSBColor(hsb[0], hsb[1], Math.min(1f, hsb[2] + 0.4f));
-            drawMesh(ring, i, Mesh.FILL, grow, eased[i], Misc.setAlpha(fill, fillAlpha));
+            activeColors[i] = entry.fillHue == null ? Misc.getBasePlayerColor()
+                    : Color.getHSBColor(entry.fillHue, 0.55f, 1f);
+            drawMesh(ring, i, Mesh.FILL, grow, eased[i], shade, false);
+            drawMesh(ring, i, Mesh.FILL, grow, eased[i], background, false);
+            if (glow[i] > 0f) {
+                // vanilla's button hover: an additive wash that whitens as it brightens
+                Color light = Misc.interpolateColor(activeColors[i], Color.white, glow[i] * 0.5f);
+                float strength = glow[i] * 0.5f * Math.min(1f, (Misc.getDarkPlayerColor().getAlpha() + 50f) / 255f);
+                drawMesh(ring, i, Mesh.FILL, grow, eased[i], Misc.setAlpha(light, Math.round(255 * strength * grow)), true);
+            }
             outlines[i] = Misc.scaleAlpha(rim, 0.75f * grow);
         }
         // Active abilities pulse inward from every edge, even when temporarily unavailable.
@@ -413,12 +439,12 @@ public final class CampaignRadialMenu implements CampaignInputListener, Campaign
         for (int i = 0; i < count; i++) {
             WheelEntry entry = ring.entries[i];
             if (entry.kind != Kind.ABILITY || !entry.action.isActive(ability(entry.action))) continue;
-            Color glow = Misc.setAlpha(activeColors[i], (int) ((75 + 90 * pulse) * grow));
-            drawMesh(ring, i, Mesh.INNER_GLOW, grow, eased[i], glow);
-            drawMesh(ring, i, Mesh.OUTER_GLOW, grow, eased[i], glow);
+            Color pulseColor = Misc.setAlpha(activeColors[i], (int) ((75 + 90 * pulse) * grow));
+            drawMesh(ring, i, Mesh.INNER_GLOW, grow, eased[i], pulseColor);
+            drawMesh(ring, i, Mesh.OUTER_GLOW, grow, eased[i], pulseColor);
             if (count > 1 || ring.standalone) {
-                drawMesh(ring, i, Mesh.START_GLOW, grow, eased[i], glow);
-                drawMesh(ring, i, Mesh.END_GLOW, grow, eased[i], glow);
+                drawMesh(ring, i, Mesh.START_GLOW, grow, eased[i], pulseColor);
+                drawMesh(ring, i, Mesh.END_GLOW, grow, eased[i], pulseColor);
             }
         }
         for (int i = 0; i < count; i++) {
@@ -449,7 +475,8 @@ public final class CampaignRadialMenu implements CampaignInputListener, Campaign
             }
             float alpha = (available ? 1f : 0.4f) * grow;
             drawIconBackdrop(entry.iconName, entry.icon, x, y - 10f, alpha);
-            drawFadedIcon(entry.icon, x, y - 10f, alpha);
+            drawFadedIcon(entry.icon, x, y - 10f, alpha, false);
+            if (glow[i] > 0f) drawFadedIcon(entry.icon, x, y - 10f, alpha * glow[i] * 0.33f, true);
             drawLabel(label, x, y + 12f + labelHeight / 2f, grow);
         }
         // Draw every outline and shared divider once, after all backgrounds.
@@ -491,13 +518,17 @@ public final class CampaignRadialMenu implements CampaignInputListener, Campaign
 
     // collapsed, base and lifted meshes share their angles, so vertices pair up and a blend is the in-between radius
     private void drawMesh(WheelRing ring, int index, Mesh mesh, float grow, float lift, Color color) {
+        drawMesh(ring, index, mesh, grow, lift, color, false);
+    }
+
+    private void drawMesh(WheelRing ring, int index, Mesh mesh, float grow, float lift, Color color, boolean additive) {
         float[] base = mesh.of(ring.base[index]);
         float[] lifted = mesh.of(ring.lifted[index]);
         float[] collapsed = ring.collapsed == null ? base : mesh.of(ring.collapsed[index]);
         GL11.glDisable(GL11.GL_TEXTURE_2D);
         // Stock labels may change GL state between meshes; reassert the coverage blend each time.
         GL11.glEnable(GL11.GL_BLEND);
-        GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+        GL11.glBlendFunc(GL11.GL_SRC_ALPHA, additive ? GL11.GL_ONE : GL11.GL_ONE_MINUS_SRC_ALPHA);
         GL11.glShadeModel(GL11.GL_SMOOTH);
         GL11.glDisable(GL11.GL_ALPHA_TEST);
         GL11.glBegin(GL11.GL_QUADS);
@@ -550,10 +581,10 @@ public final class CampaignRadialMenu implements CampaignInputListener, Campaign
         GL11.glEnd();
     }
 
-    private void drawFadedIcon(SpriteAPI icon, float x, float y, float alpha) {
+    private void drawFadedIcon(SpriteAPI icon, float x, float y, float alpha, boolean additive) {
         GL11.glEnable(GL11.GL_TEXTURE_2D);
         GL11.glEnable(GL11.GL_BLEND);
-        GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+        GL11.glBlendFunc(GL11.GL_SRC_ALPHA, additive ? GL11.GL_ONE : GL11.GL_ONE_MINUS_SRC_ALPHA);
         GL11.glDisable(GL11.GL_ALPHA_TEST);
         GL11.glShadeModel(GL11.GL_SMOOTH);
         GL11.glTexEnvi(GL11.GL_TEXTURE_ENV, GL11.GL_TEXTURE_ENV_MODE, GL11.GL_MODULATE);

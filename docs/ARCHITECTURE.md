@@ -24,7 +24,7 @@ Technical routing for the current implementation. Code paths below are relative 
 | Cooldown fill | `CampaignRadialMenu.drawCooldown` (`AbilityPlugin.showCooldownIndicator`, `getCooldownFraction`) |
 | Wheel does not open or closes by itself | `CampaignRadialMenu.allowed`, called from input and from `renderInUICoordsAboveUIBelowTooltips` |
 | Sector shapes, borders, dividers, glow | `WheelRing.updateGeometry -> FeatheredSector`, drawn by `CampaignRadialMenu.drawRing` |
-| Sector fill colour | submenu `Slot.hue`, else `CampaignRadialMenu.iconHue -> IconHue.average` |
+| Tile background and hover light | `CampaignRadialMenu.drawRing` (`BACKGROUND_SHADE`, `BACKGROUND_TINT`, glow faders); light colour from submenu `Slot.hue`, else `CampaignRadialMenu.iconHue -> IconHue.average` |
 | Icon and icon backdrop | `CampaignRadialMenu.drawFadedIcon` (`IconFade.MESH`), `CampaignRadialMenu.drawIconBackdrop` (`IconBackdrop.create`, `IconBackdrop.upload`) |
 | Label wrapping and fit | `CampaignRadialMenu.label -> SectorText.width/SectorText.wrap` |
 
@@ -137,6 +137,7 @@ Runtime classes are in `radialmenu/` and `radialmenu/config/`. In `radialmenu/` 
 ### Rendering
 
 - Coordinates are virtual UI pixels. `FeatheredSector` meshes are rebuilt only when `getScreenScaleMult()` changes (`WheelRing.updateGeometry`).
+- Tile background is black at `BACKGROUND_SHADE` (0.4) under `Misc.getDarkPlayerColor()` at `BACKGROUND_TINT` (0.8) of its own alpha. That colour is vanilla's dark UI colour, `darkUIColor` in `player.faction` and `buttonBgDark` in `settings.json`, (31,94,112,175). The hovered available tile, and an open submenu's parent, light up with vanilla's button hover: an additive wash of the tile's colour moving toward white, at `glow * 0.5 * min(1, (175 + 50) / 255)`, plus the icon drawn again additively at `glow * 0.33`. The tile colour is the icon hue at saturation 0.55 and full brightness (`Misc.getBasePlayerColor()` without one); the active pulse and the cooldown fill use it too. Each tile has a glow `FaderUtil` with vanilla's button timing (`GLOW_IN` 0.05 s, `GLOW_OUT` 0.25 s). Sources: `settings.json` and `player.faction` (0.98a-RC8); the text-button renderer and the ability icon widget, translated from decompiled code.
 - Both rings go through `drawRing`. The open submenu's parent stays lit and lifted while the pointer is on its children. A submenu extends with a `FaderUtil` (`EXTEND_IN` 0.1 s, `EXTEND_OUT` 0.08 s, smoothstep) that grows its tiles out of `CHILD_INNER_RADIUS` and fades them in; a closing submenu keeps drawing until it has faded, but cannot be selected. Submenu tiles draw both sides (`divider` and `endDivider`); the main ring keeps shared dividers.
 - `renderInUICoordsAboveUIBelowTooltips` pushes `GL_ALL_ATTRIB_BITS` and pops it in `finally`. `drawMesh` reasserts blending for every mesh because stock labels change GL state.
 - All sector backgrounds are drawn before any icon or label, and all outlines and dividers after them, so neighbouring sectors cannot cover each other.

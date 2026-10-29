@@ -13,7 +13,7 @@ To change a slot, hold the left mouse button on it for half a second while the w
 
 Release in the center, outside the ring, or without moving to cancel. **Escape** also cancels; release all opening keys before opening again. If several hotkeys are held, release all of them to select.
 
-The wheel is kept inside the screen and uses the game's virtual UI coordinates, fonts, and player UI colors. Campaign mouse and keyboard input is captured while the wheel is open. The wheel does not pause campaign time.
+The wheel is kept inside the screen and uses the game's virtual UI coordinates, fonts, and player UI colors. Tiles use the game's translucent dark interface colour, and the tile under the mouse lights up in its icon's colour. Campaign mouse and keyboard input is captured while the wheel is open. The wheel does not pause campaign time.
 
 Under **Animation** in LunaLib's mod settings, turn off **Lift the hovered tile** to keep every tile in place, or turn on **No animations** to make lifts and submenus appear at once.
 

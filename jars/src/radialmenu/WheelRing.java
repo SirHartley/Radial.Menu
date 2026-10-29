@@ -15,13 +15,14 @@ final class WheelRing {
     private final double[] centers;
 
     final FaderUtil[] lift;
+    final FaderUtil[] glow;
     FeatheredSector[] base;
     FeatheredSector[] lifted;
     FeatheredSector[] collapsed;
     private float scale;
 
     WheelRing(WheelEntry[] entries, double[] centers, double width, float inner, float outer,
-              boolean standalone, float liftIn, float liftOut) {
+              boolean standalone, float liftIn, float liftOut, float glowIn, float glowOut) {
         this.entries = entries;
         this.centers = centers;
         this.width = width;
@@ -29,7 +30,11 @@ final class WheelRing {
         this.outer = outer;
         this.standalone = standalone;
         lift = new FaderUtil[entries.length];
-        for (int i = 0; i < entries.length; i++) lift[i] = new FaderUtil(0f, liftIn, liftOut);
+        glow = new FaderUtil[entries.length];
+        for (int i = 0; i < entries.length; i++) {
+            lift[i] = new FaderUtil(0f, liftIn, liftOut);
+            glow[i] = new FaderUtil(0f, glowIn, glowOut);
+        }
     }
 
     double center(int index) {
