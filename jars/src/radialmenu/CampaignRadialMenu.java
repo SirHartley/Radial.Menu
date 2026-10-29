@@ -37,13 +37,13 @@ import radialmenu.config.Setting;
 public final class CampaignRadialMenu implements CampaignInputListener, CampaignUIRenderingListener {
 
     private enum Mesh {
-        FILL, OUTLINE, BORDER, INNER_GLOW, OUTER_GLOW, START_GLOW, END_GLOW;
+        FILL, EDGE, INNER_EDGE, INNER_GLOW, OUTER_GLOW, START_GLOW, END_GLOW;
 
         float[] of(FeatheredSector sector) {
             return switch (this) {
                 case FILL -> sector.fill;
-                case OUTLINE -> sector.outline;
-                case BORDER -> sector.border;
+                case EDGE -> sector.edge;
+                case INNER_EDGE -> sector.innerEdge;
                 case INNER_GLOW -> sector.innerGlow;
                 case OUTER_GLOW -> sector.outerGlow;
                 case START_GLOW -> sector.startGlow;
@@ -400,15 +400,12 @@ public final class CampaignRadialMenu implements CampaignInputListener, Campaign
             ring.glow[i].advance(amount);
             glow[i] = ring.glow[i].getBrightness();
         }
-        Color[] outlines = new Color[count];
         Color[] activeColors = new Color[count];
         Color shade = Misc.setAlpha(Color.black, Math.round(255 * BACKGROUND_SHADE * grow));
         Color background = Misc.scaleAlpha(Misc.getDarkPlayerColor(), BACKGROUND_TINT * grow);
         // Draw backgrounds first so a neighboring sector cannot cover its label or icon.
         for (int i = 0; i < count; i++) {
             WheelEntry entry = ring.entries[i];
-            boolean available = available(entry);
-            Color rim = !available ? Misc.getGrayColor() : Misc.getBasePlayerColor();
             activeColors[i] = entry.fillHue == null ? Misc.getBasePlayerColor()
                     : Color.getHSBColor(entry.fillHue, 0.55f, 1f);
             drawMesh(ring, i, Mesh.FILL, grow, eased[i], shade, false);
@@ -419,7 +416,6 @@ public final class CampaignRadialMenu implements CampaignInputListener, Campaign
                 float strength = glow[i] * 0.5f * Math.min(1f, (Misc.getDarkPlayerColor().getAlpha() + 50f) / 255f);
                 drawMesh(ring, i, Mesh.FILL, grow, eased[i], Misc.setAlpha(light, Math.round(255 * strength * grow)), true);
             }
-            outlines[i] = Misc.scaleAlpha(rim, 0.75f * grow);
         }
         // Active abilities pulse inward from every edge, even when temporarily unavailable.
         double pulse = !animate ? 0.5 : 0.5 + 0.5 * Math.sin(Math.floorMod(System.nanoTime(), 3_000_000_000L)
@@ -465,11 +461,13 @@ public final class CampaignRadialMenu implements CampaignInputListener, Campaign
             if (glow[i] > 0f) drawFadedIcon(entry.icon, x, y - 10f, alpha * glow[i] * 0.33f, true);
             drawLabel(label, x, y + 12f + labelHeight / 2f, grow);
         }
-        // Draw every outline after all backgrounds; each tile is closed, so nothing is shared.
-        Color core = Misc.scaleAlpha(Misc.getTextColor(), 0.75f * grow);
+        // Draw every border after all backgrounds; each tile is closed, so nothing is shared.
+        // vanilla keeps a disabled slot's border in the base ui colour
+        Color edge = Misc.scaleAlpha(Misc.getBasePlayerColor(), grow);
+        Color innerEdge = Misc.scaleAlpha(Misc.getBasePlayerColor(), 0.5f * grow);
         for (int i = 0; i < count; i++) {
-            drawMesh(ring, i, Mesh.BORDER, grow, eased[i], outlines[i]);
-            drawMesh(ring, i, Mesh.OUTLINE, grow, eased[i], core);
+            drawMesh(ring, i, Mesh.EDGE, grow, eased[i], edge);
+            drawMesh(ring, i, Mesh.INNER_EDGE, grow, eased[i], innerEdge);
         }
         if (held >= 0 && hold > 0f && held < count) {
             // the edit hold runs clockwise along the outer edge

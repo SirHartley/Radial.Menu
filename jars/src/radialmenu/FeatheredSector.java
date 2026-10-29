@@ -4,8 +4,8 @@ package radialmenu;
 final class FeatheredSector {
     private static final int SEGMENTS_PER_CIRCLE = 160;
     final float[] fill;
-    final float[] outline;
-    final float[] border;
+    final float[] edge;
+    final float[] innerEdge;
     final float[] outerGlow;
     final float[] innerGlow;
     final float[] startGlow;
@@ -21,9 +21,10 @@ final class FeatheredSector {
         fill = join(arcs(start, end, radii, coverage, side + feather),
                 side(start, 1f, radii, coverage, new float[] {side, side + feather}, new float[] {0f, 1f}),
                 side(end, -1f, radii, coverage, new float[] {side, side + feather}, new float[] {0f, 1f}));
-        outline = loop(start, end, inner, outer, side, new float[] {-feather, 0f, feather}, new float[] {0f, 1f, 0f});
-        border = loop(start, end, inner, outer, side, new float[] {-1.5f * feather, -0.5f * feather,
-                0.5f * feather, 1.5f * feather}, new float[] {0f, 1f, 1f, 0f});
+        // vanilla's ability slot border: a 1-unit line with 3-unit chamfers, then one 1 unit inside it with
+        // 2-unit chamfers that the caller draws at half alpha
+        edge = stroke(corners(start, end, inner, outer, side, 0.5f, 3f), 1f, feather);
+        innerEdge = stroke(corners(start, end, inner, outer, side, 1.5f, 2f), 1f, feather);
         float glowWidth = Math.min(16f, (outer - inner) / 2f);
         outerGlow = arcs(start, end, new float[] {outer - glowWidth, outer}, new float[] {0f, 1f}, side);
         innerGlow = arcs(start, end, new float[] {inner, inner + glowWidth}, new float[] {1f, 0f}, side);
@@ -39,21 +40,68 @@ final class FeatheredSector {
         return Math.max(1, (int) Math.ceil((end - start) * SEGMENTS_PER_CIRCLE / (Math.PI * 2)));
     }
 
-    // a closed band around the tile; offsets run across the edge, outward on the arcs and into the tile on the sides
-    private static float[] loop(double start, double end, float inner, float outer, float side,
-                                float[] offsets, float[] coverage) {
-        float[] outerRadii = new float[offsets.length];
-        float[] innerRadii = new float[offsets.length];
-        float[] sideOffsets = new float[offsets.length];
-        for (int i = 0; i < offsets.length; i++) {
-            outerRadii[i] = outer + offsets[i];
-            innerRadii[i] = inner - offsets[i];
-            sideOffsets[i] = side + offsets[i];
+    // the tile's outline as a closed polyline, inset from every edge and with each corner cut
+    private static float[] corners(double start, double end, float inner, float outer, float side,
+                                   float inset, float cut) {
+        float top = outer - inset;
+        float bottom = inner + inset;
+        float offset = side + inset;
+        int steps = steps(start, end);
+        float[] points = new float[(2 * (steps + 1) + 4) * 2];
+        int index = 0;
+        double outerStart = start + Math.asin(Math.min(1f, offset / top)) + cut / top;
+        double outerEnd = end - Math.asin(Math.min(1f, offset / top)) - cut / top;
+        for (int step = 0; step <= steps; step++) {
+            index = point(points, index, outerStart + (outerEnd - outerStart) * step / steps, top, 0f);
         }
-        float[] span = {inner, outer};
-        float[] full = {1f, 1f};
-        return join(arcs(start, end, outerRadii, coverage, side), arcs(start, end, innerRadii, coverage, side),
-                side(start, 1f, span, full, sideOffsets, coverage), side(end, -1f, span, full, sideOffsets, coverage));
+        float high = (float) Math.sqrt(Math.max(0f, top * top - offset * offset)) - cut;
+        float low = (float) Math.sqrt(Math.max(0f, bottom * bottom - offset * offset)) + cut;
+        index = point(points, index, end, high, -offset);
+        index = point(points, index, end, low, -offset);
+        double innerEnd = end - Math.asin(Math.min(1f, offset / bottom)) - cut / bottom;
+        double innerStart = start + Math.asin(Math.min(1f, offset / bottom)) + cut / bottom;
+        for (int step = 0; step <= steps; step++) {
+            index = point(points, index, innerEnd + (innerStart - innerEnd) * step / steps, bottom, 0f);
+        }
+        index = point(points, index, start, low, offset);
+        point(points, index, start, high, offset);
+        return points;
+    }
+
+    private static int point(float[] points, int index, double angle, float radius, float normalOffset) {
+        points[index++] = (float) (Math.cos(angle) * radius - Math.sin(angle) * normalOffset);
+        points[index++] = (float) (Math.sin(angle) * radius + Math.cos(angle) * normalOffset);
+        return index;
+    }
+
+    // a closed line of the given width, feathered by one physical pixel on both sides
+    private static float[] stroke(float[] points, float width, float feather) {
+        int count = points.length / 2;
+        float[] offsets = {-width / 2f - feather, -width / 2f, width / 2f, width / 2f + feather};
+        float[] coverage = {0f, 1f, 1f, 0f};
+        float[] vertices = new float[count * 3 * 4 * 3];
+        int offset = 0;
+        for (int i = 0; i < count; i++) {
+            int next = (i + 1) % count;
+            float ax = points[i * 2], ay = points[i * 2 + 1];
+            float bx = points[next * 2], by = points[next * 2 + 1];
+            float length = (float) Math.max(1e-4, Math.hypot(bx - ax, by - ay));
+            float nx = -(by - ay) / length, ny = (bx - ax) / length;
+            for (int band = 0; band < 3; band++) {
+                offset = vertex(vertices, offset, ax + nx * offsets[band], ay + ny * offsets[band], coverage[band]);
+                offset = vertex(vertices, offset, ax + nx * offsets[band + 1], ay + ny * offsets[band + 1], coverage[band + 1]);
+                offset = vertex(vertices, offset, bx + nx * offsets[band + 1], by + ny * offsets[band + 1], coverage[band + 1]);
+                offset = vertex(vertices, offset, bx + nx * offsets[band], by + ny * offsets[band], coverage[band]);
+            }
+        }
+        return vertices;
+    }
+
+    private static int vertex(float[] vertices, int offset, float x, float y, float coverage) {
+        vertices[offset++] = x;
+        vertices[offset++] = y;
+        vertices[offset++] = coverage;
+        return offset;
     }
 
     // an arc band whose ends stop where it meets the straight sides, inset from the boundary rays by side
