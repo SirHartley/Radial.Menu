@@ -71,7 +71,7 @@ Tools live in `radialmenu/tools/`, run as standalone programs with JDK 17 from t
 | `tools/ReleaseBuild.java` | `build <starsector-core>`: compiles `jars/src` into `jars/release/radialmenu.jar`; `package [tag]`: writes the ZIP, notes and stamped version file to `out/release/`. Reads `libs/` and the game jars, never writes to the game. [RELEASE.md](RELEASE.md) |
 | `tools/ReleaseBuildChecks.java` | Headless checks of changelog parsing, version stamping and the package file filter |
 | `tools/PlayerSettingsChecks.java` | Checks `data/config/LunaSettings.csv` against `config/Setting`: columns, `radial_menu_` prefix, unique ids, a `Setting` for every row, `Keycode`, `Int`, `Boolean` or `Radio` type, defaults, `Int` bounds, `Radio` choices, help text, escaped `%`, keycode sanitizing and count clamping. Run from the repository root after the compile gate: `java -cp <classes>:<compile jars> radialmenu.tools.PlayerSettingsChecks` |
-| `.github/workflows/release.yml` | Runs the checks and a preview package on every push and PR; publishes on a version tag |
+| `.github/workflows/release.yml` | Manual only (`workflow_dispatch`): from a branch it runs the checks and keeps a preview package; from a version tag it publishes |
 
 ## Data identity
 
