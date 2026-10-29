@@ -259,7 +259,18 @@ public final class CampaignRadialMenu implements CampaignInputListener, Campaign
         // Recheck on release: cooldowns, toggles, and salvage context may have changed.
         if (released && allowed()) {
             WheelEntry entry = entryAt(selection.target(mouseX, mouseY));
-            if (entry != null && entry.kind == Kind.ABILITY) entry.action.press(ability(entry.action));
+            if (entry != null) activate(entry);
+        }
+    }
+
+    // like vanilla's ability bar: the ability's own on-sound replaces the pressed sound when it has one
+    private void activate(WheelEntry entry) {
+        if (entry.kind == Kind.SUBMENU) return;
+        AbilityPlugin ability = entry.kind == Kind.ABILITY ? ability(entry.action) : null;
+        if (ability == null || !entry.action.press(ability)) {
+            Global.getSoundPlayer().playUISound("ui_button_disabled_pressed", 1f, 1f);
+        } else if (!ability.hasCustomButtonPressSounds()) {
+            Global.getSoundPlayer().playUISound("ui_button_pressed", 1f, 1f);
         }
     }
 
@@ -283,11 +294,12 @@ public final class CampaignRadialMenu implements CampaignInputListener, Campaign
     private void trackPointer(float amount, float mouseX, float mouseY) {
         updateExtension(mouseX, mouseY);
         Target target = selection.target(mouseX, mouseY);
+        WheelEntry entry = entryAt(target);
         if (!target.equals(pointer)) {
             pointer = target;
             hold = 0f;
+            if (entry != null) Global.getSoundPlayer().playUISound("ui_button_mouseover", 1f, 1f);
         }
-        WheelEntry entry = entryAt(target);
         if (entry == null || !Mouse.isButtonDown(0)) {
             hold = 0f;
             return;
@@ -318,6 +330,7 @@ public final class CampaignRadialMenu implements CampaignInputListener, Campaign
     private void edit(Target target, WheelEntry entry) {
         selection.cancel();
         hold = 0f;
+        Global.getSoundPlayer().playUISound("ui_button_pressed", 1f, 1f);
         if (target.child() >= 0) SlotPicker.open(layout, main.entries[target.sector()].slot, entry.slot);
         else SlotPicker.open(layout, entry.slot, -1);
     }

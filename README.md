@@ -13,7 +13,7 @@ To change a slot, hold the left mouse button on it for half a second while the w
 
 Release in the center, outside the ring, or without moving to cancel. **Escape** also cancels; release all opening keys before opening again. If several hotkeys are held, release all of them to select.
 
-The wheel is kept inside the screen and uses the game's virtual UI coordinates, fonts, and player UI colors. Tiles are separated by narrow gaps and use the game's translucent dark interface colour and chamfered borders, and the tile under the mouse lights up in its icon's colour. Campaign mouse and keyboard input is captured while the wheel is open. The wheel does not pause campaign time.
+The wheel is kept inside the screen and uses the game's virtual UI coordinates, fonts, and player UI colors. Tiles are separated by narrow gaps and use the game's translucent dark interface colour and chamfered borders, and the tile under the mouse lights up in its icon's colour. Campaign mouse and keyboard input is captured while the wheel is open. The wheel plays the game's standard button sounds: a tick when the pointer reaches a tile, and the usual press or refused sound on release. Abilities with their own activation sound play only that, as on the ability bar. The wheel does not pause campaign time.
 
 Under **Animation** in LunaLib's mod settings, turn off **Lift the hovered tile** to keep every tile in place, or turn on **No animations** to make lifts and submenus appear at once.
 
@@ -83,5 +83,6 @@ In-game smoke test:
 - Cancel with the center, outside the ring, and Escape. Test every hotkey, combinations of hotkeys, and a stationary key tap near a screen edge.
 - Open Fleet/Intel, pause menus, or a dialog, and switch focus away. Confirm no wheel or unintended activation.
 - In LunaLib's mod settings, change one hotkey and clear another, then save. Confirm the wheel follows the new keys without a restart, after loading a save, and in a new game. Clear all three and confirm the wheel cannot open.
+- Listen while using the wheel: a tick on each new tile, the refused sound on a greyed or empty tile, only the ability's own sound for Transponder or Go Dark, and silence on a cancel.
 - Sweep the mouse around the wheel and stop on a sector. Confirm the hovered slice grows out smoothly, eases back when left, and that this also works while the campaign is paused.
 - Test paused campaign, UI scaling, save/load, and a second campaign in the same process.
