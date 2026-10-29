@@ -12,6 +12,7 @@ public enum Setting {
     WHEEL_SLOTS("radial_menu_wheel_slots", 7, 1, 10),
     SUBMENU_SLOTS("radial_menu_submenu_slots", 5, 1, 10),
     ICONS_ONLY("radial_menu_icons_only", true),
+    SELECT_BY_DIRECTION("radial_menu_select_by_direction", false),
     LIFT("radial_menu_lift", true),
     NO_ANIMATION("radial_menu_no_animation", false);
 

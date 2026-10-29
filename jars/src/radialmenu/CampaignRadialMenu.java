@@ -100,6 +100,7 @@ public final class CampaignRadialMenu implements CampaignInputListener, Campaign
         animate = !PlayerSettings.enabled(Setting.NO_ANIMATION);
         lift = PlayerSettings.enabled(Setting.LIFT);
         names = !PlayerSettings.enabled(Setting.ICONS_ONLY);
+        selection.setDirectional(PlayerSettings.enabled(Setting.SELECT_BY_DIRECTION));
         extension.setDuration(animate ? EXTEND_IN : 0f, animate ? EXTEND_OUT : 0f);
         int count = PlayerSettings.get(Setting.WHEEL_SLOTS);
         WheelEntry[] entries = new WheelEntry[count];
@@ -335,6 +336,12 @@ public final class CampaignRadialMenu implements CampaignInputListener, Campaign
             if (sector == parent) return;
             retract();
             extend(sector);
+        } else {
+            // only a directional wheel targets a main tile past the ring, outside the submenu's span
+            Target target = selection.target(mouseX, mouseY);
+            if (target.child() >= 0 || target.sector() < 0 || target.sector() == parent) return;
+            retract();
+            extend(target.sector());
         }
     }
 
