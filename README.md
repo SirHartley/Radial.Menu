@@ -17,13 +17,15 @@ The wheel is kept inside the screen and uses the game's virtual UI coordinates, 
 
 ## Abilities
 
-By default the main wheel has 5 slots and each submenu 5 slots. Change both under **Wheel** in LunaLib's mod settings, from 1 to 10 each. Slots past the count keep their abilities and return when you raise it. Until you change a slot, the main wheel holds these abilities, clockwise from the top:
+By default the main wheel has 7 slots and each submenu 5 slots. Change both under **Wheel** in LunaLib's mod settings, from 1 to 10 each. Slots past the count keep their abilities and return when you raise it. Until you change a slot, the main wheel holds these abilities, clockwise from the top:
 
 1. **Scavenge** (salvage): use vanilla Scavenge inside an unscavenged debris field.
 2. **Sustained Burn**: toggle on or off.
 3. **Emergency Burn**: activate the normal duration ability.
 4. **Transponder**: toggle on or off, with the normal identity-reveal warning when required.
 5. **Go Dark**: toggle on or off.
+6. **Sensor Burst**: activate the normal duration ability.
+7. **Interdiction Pulse**: activate the normal duration ability.
 
 Each sector shows the ability name above its icon. Empty slots show **Empty**. A slot whose ability your fleet does not have is greyed out and keeps its place, and so are owned abilities that are cooling down or otherwise unusable. While an ability cools down, its sector fills from the outer edge inward; the ability is ready when the fill reaches the inner ring. Slots are captured when the wheel opens and when it changes layer, so learning or losing an ability cannot move a different action under the mouse during that gesture. Ownership and usability are checked again through the current fleet's ability lookup on release.
 
@@ -42,7 +44,9 @@ The wheel does not operate in combat, dialogs, core screens, menus, hidden-UI mo
     "sustained_burn",
     "emergency_burn",
     "transponder",
-    "go_dark"
+    "go_dark",
+    "sensor_burst",
+    "interdiction_pulse"
   ]
 }
 ```

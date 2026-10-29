@@ -9,7 +9,7 @@ public enum Setting {
     HOTKEY("radial_menu_hotkey", Keyboard.KEY_B),
     SECOND_HOTKEY("radial_menu_second_hotkey", Keyboard.KEY_LCONTROL),
     THIRD_HOTKEY("radial_menu_third_hotkey", Keyboard.KEY_RCONTROL),
-    WHEEL_SLOTS("radial_menu_wheel_slots", 5, 1, 10),
+    WHEEL_SLOTS("radial_menu_wheel_slots", 7, 1, 10),
     SUBMENU_SLOTS("radial_menu_submenu_slots", 5, 1, 10);
 
     public static final List<Setting> HOTKEYS = List.of(HOTKEY, SECOND_HOTKEY, THIRD_HOTKEY);

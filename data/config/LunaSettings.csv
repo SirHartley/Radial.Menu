@@ -4,5 +4,5 @@
 "radial_menu_second_hotkey","Second hotkey","Keycode","29","","Another key that opens the radial menu, the same way as Hotkey. Default: L-Ctrl.","","",""
 "radial_menu_third_hotkey","Third hotkey","Keycode","157","","A third key that opens the radial menu, the same way as Hotkey. Default: R-Ctrl.","","",""
 "radial_menu_header_wheel","","Header","Wheel","","","","",""
-"radial_menu_wheel_slots","Main wheel slots","Int","5","","How many slots the main wheel shows, from 1 to 10. Slots past this number keep their abilities and come back when you raise it. Takes effect the next time you open the wheel. Default: 5.","1","10",""
+"radial_menu_wheel_slots","Main wheel slots","Int","7","","How many slots the main wheel shows, from 1 to 10. Slots past this number keep their abilities and come back when you raise it. Takes effect the next time you open the wheel. Default: 7.","1","10",""
 "radial_menu_submenu_slots","Submenu slots","Int","5","","How many slots each submenu shows on the outer ring, from 1 to 10. Slots past this number keep their abilities. Default: 5.","1","10",""

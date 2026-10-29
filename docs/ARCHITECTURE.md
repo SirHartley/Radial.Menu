@@ -75,7 +75,7 @@ Tools live in `radialmenu/tools/`, run as standalone programs with JDK 17 from t
 |---|---|
 | `radial_menu` (mod id) | Campaign Radial Menu |
 | `radialmenu` (Java package) | none |
-| Ability ids in `radial_menu.json` and the saved layout (`scavenge`, `sustained_burn`, `emergency_burn`, `transponder`, `go_dark` by default) | `SettingsAPI.getAbilitySpec(id).getName()` |
+| Ability ids in `radial_menu.json` and the saved layout (`scavenge`, `sustained_burn`, `emergency_burn`, `transponder`, `go_dark`, `sensor_burst`, `interdiction_pulse` by default) | `SettingsAPI.getAbilitySpec(id).getName()` |
 
 `RadialMenuModPlugin.MOD_ID` is the mod id for `loadJSON` and LunaLib; it must match `mod_info.json`. Setting ids carry the `radial_menu_` prefix.
 

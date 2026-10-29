@@ -4,6 +4,8 @@
     "sustained_burn",
     "emergency_burn",
     "transponder",
-    "go_dark"
+    "go_dark",
+    "sensor_burst",
+    "interdiction_pulse"
   ]
 }
