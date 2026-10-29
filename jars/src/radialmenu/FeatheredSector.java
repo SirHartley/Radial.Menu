@@ -74,10 +74,13 @@ final class FeatheredSector {
         return index;
     }
 
-    // a closed line of the given width, feathered by one physical pixel on both sides
+    // a closed line whose coverage adds up to its width: the antialiasing ramps sit inside it, not around it,
+    // so a 1-unit line stays one pixel heavy like vanilla's
     private static float[] stroke(float[] points, float width, float feather) {
         int count = points.length / 2;
-        float[] offsets = {-width / 2f - feather, -width / 2f, width / 2f, width / 2f + feather};
+        float ramp = Math.min(feather, width);
+        float core = (width - ramp) / 2f;
+        float[] offsets = {-core - ramp, -core, core, core + ramp};
         float[] coverage = {0f, 1f, 1f, 0f};
         float[] vertices = new float[count * 3 * 4 * 3];
         int offset = 0;

@@ -63,6 +63,9 @@ public final class CampaignRadialMenu implements CampaignInputListener, Campaign
     // black under the dark ui colour, so the map shows through a little, like vanilla's dimmed dialogs
     private static final float BACKGROUND_SHADE = 0.4f;
     private static final float BACKGROUND_TINT = 0.8f;
+    // measured from a vanilla ability slot: the outer line shows the base ui colour at 70%, the inner one at 35%
+    private static final float EDGE_ALPHA = 0.7f;
+    private static final float INNER_EDGE_ALPHA = 0.35f;
 
     private final RadialLayout layout;
     private final RadialSelection selection = new RadialSelection(0);
@@ -480,8 +483,8 @@ public final class CampaignRadialMenu implements CampaignInputListener, Campaign
         }
         // Draw every border after all backgrounds; each tile is closed, so nothing is shared.
         // vanilla keeps a disabled slot's border in the base ui colour
-        Color edge = Misc.scaleAlpha(Misc.getBasePlayerColor(), grow);
-        Color innerEdge = Misc.scaleAlpha(Misc.getBasePlayerColor(), 0.5f * grow);
+        Color edge = Misc.scaleAlpha(Misc.getBasePlayerColor(), EDGE_ALPHA * grow);
+        Color innerEdge = Misc.scaleAlpha(Misc.getBasePlayerColor(), INNER_EDGE_ALPHA * grow);
         for (int i = 0; i < count; i++) {
             drawMesh(ring, i, Mesh.EDGE, grow, eased[i], edge);
             drawMesh(ring, i, Mesh.INNER_EDGE, grow, eased[i], innerEdge);
