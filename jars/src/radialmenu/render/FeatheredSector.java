@@ -1,19 +1,19 @@
-package radialmenu;
+package radialmenu.render;
 
 /** Cached, non-overlapping quads. Each vertex contains local x, local y, and alpha coverage. */
-final class FeatheredSector {
+public final class FeatheredSector {
     private static final int SEGMENTS_PER_CIRCLE = 160;
-    final float[] fill;
-    final float[] edge;
-    final float[] innerEdge;
-    final float[] outerGlow;
-    final float[] innerGlow;
-    final float[] startGlow;
-    final float[] endGlow;
+    public final float[] fill;
+    public final float[] edge;
+    public final float[] innerEdge;
+    public final float[] outerGlow;
+    public final float[] innerGlow;
+    public final float[] startGlow;
+    public final float[] endGlow;
 
     // vertex count and order depend on the angles only, so CampaignRadialMenu blends two outer radii.
     // sides run parallel to the boundary rays, gap / 2 inside them, so the gap keeps one width
-    FeatheredSector(double start, double end, float inner, float outer, float gap, float screenScale) {
+    public FeatheredSector(double start, double end, float inner, float outer, float gap, float screenScale) {
         float feather = 1f / screenScale; // One physical screen pixel, independent of UI scale.
         float side = gap / 2f;
         float[] radii = {inner, inner + feather, outer - feather, outer};
@@ -36,7 +36,7 @@ final class FeatheredSector {
         endGlow = side(end, -1f, span, full, new float[] {side, side + sideWidth}, new float[] {1f, 0f});
     }
 
-    static int steps(double start, double end) {
+    public static int steps(double start, double end) {
         return Math.max(1, (int) Math.ceil((end - start) * SEGMENTS_PER_CIRCLE / (Math.PI * 2)));
     }
 

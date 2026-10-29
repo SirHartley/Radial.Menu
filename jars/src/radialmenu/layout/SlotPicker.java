@@ -1,4 +1,4 @@
-package radialmenu;
+package radialmenu.layout;
 
 import java.awt.Color;
 import java.util.ArrayList;
@@ -28,9 +28,10 @@ import com.fs.starfarer.api.ui.PositionAPI;
 import com.fs.starfarer.api.ui.TooltipMakerAPI;
 import com.fs.starfarer.api.util.Misc;
 import org.lwjgl.opengl.GL11;
+import radialmenu.render.IconHue;
 
 // one object is the empty dialog host, the custom dialog delegate and the panel plugin
-final class SlotPicker extends BaseCustomUIPanelPlugin implements InteractionDialogPlugin, CustomDialogDelegate {
+public final class SlotPicker extends BaseCustomUIPanelPlugin implements InteractionDialogPlugin, CustomDialogDelegate {
 
     private enum Choice { EMPTY, SUBMENU, ICON_COLOUR, ESCAPE }
 
@@ -117,7 +118,7 @@ final class SlotPicker extends BaseCustomUIPanelPlugin implements InteractionDia
         height = Math.min(460f, Global.getSettings().getScreenHeight() - 160f);
     }
 
-    static void open(RadialLayout layout, int slot, int child) {
+    public static void open(RadialLayout layout, int slot, int child) {
         CampaignUIAPI ui = Global.getSector().getCampaignUI();
         if (ui.isShowingDialog()) return;
         ui.showInteractionDialog(new SlotPicker(layout, slot, child), null);
@@ -302,7 +303,7 @@ final class SlotPicker extends BaseCustomUIPanelPlugin implements InteractionDia
     }
 
     private void cell(CustomPanelAPI host, Object data, String sprite, float x, float y, float size) {
-        Color swatch = data instanceof Float hue ? CampaignRadialMenu.hueColor(hue) : null;
+        Color swatch = data instanceof Float hue ? IconHue.tileColor(hue) : null;
         CustomPanelAPI cell = host.createCustomPanel(size, size, new IconCell(sprite, swatch, this));
         TooltipMakerAPI element = cell.createUIElement(size, size, false);
         ButtonAPI box = element.addAreaCheckbox("", data, Misc.getBasePlayerColor(), Misc.getDarkPlayerColor(),

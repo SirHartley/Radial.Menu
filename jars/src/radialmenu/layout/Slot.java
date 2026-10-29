@@ -1,10 +1,10 @@
-package radialmenu;
+package radialmenu.layout;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-record Slot(String abilityId, String icon, Float hue, List<Slot> children) {
+public record Slot(String abilityId, String icon, Float hue, List<Slot> children) {
 
     static final Slot EMPTY = new Slot(null, null, null, null);
 
@@ -16,7 +16,7 @@ record Slot(String abilityId, String icon, Float hue, List<Slot> children) {
         return new Slot(null, icon, hue, Collections.nCopies(RadialLayout.SUBMENU_SLOTS, EMPTY));
     }
 
-    boolean isSubmenu() {
+    public boolean isSubmenu() {
         return children != null;
     }
 

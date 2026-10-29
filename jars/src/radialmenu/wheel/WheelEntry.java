@@ -1,9 +1,13 @@
-package radialmenu;
+package radialmenu.wheel;
+
+import java.awt.Color;
 
 import com.fs.starfarer.api.Global;
 import com.fs.starfarer.api.graphics.SpriteAPI;
 import com.fs.starfarer.api.loading.AbilitySpecAPI;
 import com.fs.starfarer.api.ui.LabelAPI;
+import radialmenu.layout.RadialLayout;
+import radialmenu.layout.Slot;
 
 // one tile as shown: captured when its ring is built, so edits cannot shift a release target
 final class WheelEntry {
@@ -18,6 +22,7 @@ final class WheelEntry {
     final Float hue;
     SpriteAPI icon;
     Float fillHue;
+    Color tint;
     LabelAPI label;
 
     private WheelEntry(Kind kind, int slot, String title, RadialAbility action, String iconName, Float hue) {

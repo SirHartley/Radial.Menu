@@ -35,9 +35,17 @@ public final class PlayerSettings implements LunaSettingsListener {
     }
 
     private static Integer read(Setting setting) {
-        if (setting.type != Setting.Type.BOOLEAN) return LunaSettings.getInt(RadialMenuModPlugin.MOD_ID, setting.id);
-        Boolean value = LunaSettings.getBoolean(RadialMenuModPlugin.MOD_ID, setting.id);
-        return value == null ? null : value ? 1 : 0;
+        return switch (setting.type) {
+            case BOOLEAN -> {
+                Boolean value = LunaSettings.getBoolean(RadialMenuModPlugin.MOD_ID, setting.id);
+                yield value == null ? null : value ? 1 : 0;
+            }
+            case CHOICE -> {
+                String value = LunaSettings.getString(RadialMenuModPlugin.MOD_ID, setting.id);
+                yield value == null ? null : setting.choices.indexOf(value.trim());
+            }
+            default -> LunaSettings.getInt(RadialMenuModPlugin.MOD_ID, setting.id);
+        };
     }
 
     public static int get(Setting setting) {
