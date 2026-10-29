@@ -36,8 +36,6 @@ public final class CampaignRadialMenu implements CampaignInputListener, Campaign
 
     private enum Kind { ABILITY, SUBMENU, EMPTY, BACK }
 
-    static final int WHEEL_SLOTS = 5;
-    static final int SUBMENU_SLOTS = 5;
     private static final float LAYER_DWELL = 0.25f;
     private static final float EDIT_HOLD = 0.5f;
 
@@ -87,7 +85,7 @@ public final class CampaignRadialMenu implements CampaignInputListener, Campaign
     // a layer is captured when it opens, so edits and learned abilities cannot shift the release target
     private void buildLayer(float mouseX, float mouseY) {
         boolean submenu = submenuSlot >= 0;
-        int count = submenu ? SUBMENU_SLOTS + 1 : WHEEL_SLOTS;
+        int count = submenu ? PlayerSettings.get(Setting.SUBMENU_SLOTS) + 1 : PlayerSettings.get(Setting.WHEEL_SLOTS);
         int back = submenu ? count / 2 : -1;
         // back sits at the bottom; an odd count turns the wheel half a sector so it can
         double offset = submenu && count % 2 == 1 ? -Math.PI / count : 0;

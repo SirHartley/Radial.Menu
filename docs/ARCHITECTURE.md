@@ -14,6 +14,7 @@ Technical routing for the current implementation. Code paths below are relative 
 | Change / symptom | Route |
 |---|---|
 | What each slot holds | `RadialLayout.load` (saved layout, else `data/config/radial_menu.json -> RadialMenuConfig.fromJSON -> RadialLayout.defaults`) `-> CampaignRadialMenu.buildLayer -> CampaignRadialMenu.entry`; [Layout](#layout) |
+| Slot counts | `Setting.WHEEL_SLOTS`, `Setting.SUBMENU_SLOTS -> PlayerSettings.get -> CampaignRadialMenu.buildLayer` |
 | Submenus and Back | `CampaignRadialMenu.trackPointer` (`LAYER_DWELL`) `-> buildLayer -> RadialSelection.relayer` |
 | Editing a slot | `CampaignRadialMenu.trackPointer` (`EDIT_HOLD`) `-> edit -> SlotPicker.open -> RadialLayout.set` |
 | Hotkeys | `data/config/LunaSettings.csv -> config/PlayerSettings.reload -> CampaignRadialMenu.openingKeyHeld` (`Setting.HOTKEYS`); [Settings](#settings) |
@@ -37,7 +38,7 @@ Technical routing for the current implementation. Code paths below are relative 
 | `RadialMenuModPlugin.onGameLoad()` | `PlayerSettings.reload()`, `removeListenerOfClass(CampaignRadialMenu.class)`, then `addListener(new CampaignRadialMenu(layout), true)` (transient) |
 | `data/config/radial_menu.json` | Default main wheel: an ordered `abilities` array of at most `RadialLayout.MAIN_SLOTS` ability ids; `RadialMenuConfig.fromJSON` |
 | `radial_menu_layout.json` (common data) | The edited layout, shared by every campaign; `RadialLayout.load` and `RadialLayout.set` |
-| `data/config/LunaSettings.csv` | LunaLib settings rows (one General tab, a Hotkeys header and three `Keycode` rows); ids, types and defaults mirror `config/Setting` |
+| `data/config/LunaSettings.csv` | LunaLib settings rows (one General tab: a Hotkeys header and three `Keycode` rows, a Wheel header and two `Int` rows); ids, types and defaults mirror `config/Setting` |
 | `data/config/LunaSettingsConfig.json` | LunaLib mod-list icon: `radial_menu.iconPath` is `graphics/radialmenu/icon/small_icon_radialmenu.png` (40x40) |
 
 Load order: `onApplicationLoad -> RadialMenuConfig.fromJSON -> RadialLayout.load -> loadTexture -> PlayerSettings.install` -> `onGameLoad -> PlayerSettings.reload -> removeListenerOfClass -> addListener`.
@@ -49,6 +50,7 @@ One gesture: opening key down `-> CampaignRadialMenu.buildLayer` (main wheel) `-
 `config/Setting` owns ids and defaults. `data/config/LunaSettings.csv` supplies the rows and owns the setting names and help text (`fieldName`, `fieldDescription`); it must match `Setting` on ids, types and defaults. `config/PlayerSettings` installs a `LunaSettingsListener` on application start, reloads on every LunaLib save and on game load, and caches sanitized values. Runtime callers read `PlayerSettings.get`, never LunaLib each frame.
 
 - A hotkey is a LunaLib `Keycode`: an LWJGL key code, `0` when the player clears it with Escape. `Setting.sanitize` maps a missing or out-of-range value to the default.
+- The slot counts are LunaLib `Int` rows; `Setting.sanitize` clamps them to their bounds. `RadialLayout.MAIN_SLOTS` and `SUBMENU_SLOTS` are those settings' maximums, so the stored layout always covers the largest wheel.
 - `PlayerSettings.reload` reads through `LunaSettings.getInt`, which loads LunaLib's settings on first use.
 - LunaLib does not call listeners for settings saved during new-game setup (`if (!newGame) LunaSettings.reportSettingsChanged(mod)`), so `onGameLoad` reloads.
 - LunaLib passes `fieldName` and `fieldDescription` to `addPara` as format strings; write a literal percent sign as `%%`.
@@ -64,7 +66,7 @@ Tools live in `radialmenu/tools/`, run as standalone programs with JDK 17 from t
 |---|---|
 | `tools/ReleaseBuild.java` | `build <starsector-core>`: compiles `jars/src` into `jars/release/radialmenu.jar`; `package [tag]`: writes the ZIP, notes and stamped version file to `out/release/`. Reads `libs/` and the game jars, never writes to the game. [RELEASE.md](RELEASE.md) |
 | `tools/ReleaseBuildChecks.java` | Headless checks of changelog parsing, version stamping and the package file filter |
-| `tools/PlayerSettingsChecks.java` | Checks `data/config/LunaSettings.csv` against `config/Setting`: columns, `radial_menu_` prefix, unique ids, a `Setting` for every row, `Keycode` type, defaults, help text, escaped `%` and keycode sanitizing. Run from the repository root after the compile gate: `java -cp <classes>:<compile jars> radialmenu.tools.PlayerSettingsChecks` |
+| `tools/PlayerSettingsChecks.java` | Checks `data/config/LunaSettings.csv` against `config/Setting`: columns, `radial_menu_` prefix, unique ids, a `Setting` for every row, `Keycode` or `Int` type, defaults, `Int` bounds, help text, escaped `%`, keycode sanitizing and count clamping. Run from the repository root after the compile gate: `java -cp <classes>:<compile jars> radialmenu.tools.PlayerSettingsChecks` |
 | `.github/workflows/release.yml` | Runs the checks and a preview package on every push and PR; publishes on a version tag |
 
 ## Data identity
@@ -82,6 +84,8 @@ Tools live in `radialmenu/tools/`, run as standalone programs with JDK 17 from t
 | `radial_menu_hotkey` | Hotkey |
 | `radial_menu_second_hotkey` | Second hotkey |
 | `radial_menu_third_hotkey` | Third hotkey |
+| `radial_menu_wheel_slots` | Main wheel slots |
+| `radial_menu_submenu_slots` | Submenu slots |
 
 ## Source owners
 
@@ -101,7 +105,7 @@ Runtime classes are in `radialmenu/` and `radialmenu/config/`. In `radialmenu/` 
 | `radialmenu/SectorText.java` | Usable label width inside a sector and word wrapping |
 | `radialmenu/IconHue.java` | Circular mean hue of an icon's visible, saturated pixels |
 | `radialmenu/IconFade.java` | Static mesh fading an icon's edges |
-| `radialmenu/config/Setting.java` | Setting ids, defaults and sanitizing; `HOTKEYS` lists the keys that open the wheel |
+| `radialmenu/config/Setting.java` | Setting ids, defaults, bounds and sanitizing; `HOTKEYS` lists the keys that open the wheel |
 | `radialmenu/config/PlayerSettings.java` | LunaLib listener and the cached values |
 | `radialmenu/IconBackdrop.java` | 2x bicubic copy of an icon with radial opacity falloff, and its GL texture upload |
 
@@ -140,7 +144,7 @@ Runtime classes are in `radialmenu/` and `radialmenu/config/`. In `radialmenu/` 
 
 ### Layout
 
-- `RadialLayout` keeps `MAIN_SLOTS` (10) main slots, and each submenu `SUBMENU_SLOTS` (9) children. The wheel shows the first `CampaignRadialMenu.WHEEL_SLOTS` main slots and the first `CampaignRadialMenu.SUBMENU_SLOTS` children plus Back; hidden slots keep their contents.
+- `RadialLayout` keeps `MAIN_SLOTS` (10) main slots, and each submenu `SUBMENU_SLOTS` (9) children. The wheel shows the first `Setting.WHEEL_SLOTS` main slots and the first `Setting.SUBMENU_SLOTS` children plus Back, read when a layer is built; hidden slots keep their contents.
 - Submenus are one layer deep: `RadialLayout.slots(..., false)` ignores a submenu inside a submenu, and `SlotPicker` offers Submenu only for main slots.
 - Saved format: `{"main": [slot, ...]}` where a slot is `{}`, `{"ability": id}` or `{"icon": sprite path, "hue": 0..1 (optional), "slots": [slot, ...]}`. A submenu with no `hue` uses its icon's colour.
 - `RadialLayout.set` saves after every edit with `writeJSONToCommon(file, json, true)`, after `load` read it with `readJSONFromCommon(file, true)`, as vanilla's `BaseSharedJSONFile` does. The game stores it as `<saves>/common/radial_menu_layout.json.data` (`StarfarerSettings`, 0.98a-RC8). It can be lost with the common folder; any read error falls back to the defaults and the next edit overwrites the file.

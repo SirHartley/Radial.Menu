@@ -9,11 +9,12 @@ import com.fs.starfarer.api.Global;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+import radialmenu.config.Setting;
 
 final class RadialLayout {
 
-    static final int MAIN_SLOTS = 10;
-    static final int SUBMENU_SLOTS = 9;
+    static final int MAIN_SLOTS = Setting.WHEEL_SLOTS.max;
+    static final int SUBMENU_SLOTS = Setting.SUBMENU_SLOTS.max;
     static final String MOD_ICON = "graphics/radialmenu/icon/small_icon_radialmenu.png";
     private static final String FILE = "radial_menu_layout.json";
 
