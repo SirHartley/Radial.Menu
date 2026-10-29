@@ -20,7 +20,6 @@ import com.fs.starfarer.api.campaign.rules.MemoryAPI;
 import com.fs.starfarer.api.characters.AbilityPlugin;
 import com.fs.starfarer.api.combat.EngagementResultAPI;
 import com.fs.starfarer.api.graphics.SpriteAPI;
-import com.fs.starfarer.api.loading.AbilitySpecAPI;
 import com.fs.starfarer.api.ui.Alignment;
 import com.fs.starfarer.api.ui.ButtonAPI;
 import com.fs.starfarer.api.ui.CustomPanelAPI;
@@ -244,7 +243,9 @@ public final class SlotPicker extends BaseCustomUIPanelPlugin implements Interac
             if (ability.getId().equals(current.abilityId())) buttons.get(ability).setChecked(true);
         }
         if (current.isSubmenu() && buttons.containsKey(Choice.SUBMENU)) buttons.get(Choice.SUBMENU).setChecked(true);
-        if (current.abilityId() == null && !current.isSubmenu()) buttons.get(Choice.EMPTY).setChecked(true);
+        // a slot holding an ability this fleet lacks looks empty on the wheel, so it does here too
+        boolean known = abilities.stream().anyMatch(ability -> ability.getId().equals(current.abilityId()));
+        if (!current.isSubmenu() && !known) buttons.get(Choice.EMPTY).setChecked(true);
         view.addUIElement(list).belowLeft(heading, PAD);
     }
 
@@ -279,13 +280,14 @@ public final class SlotPicker extends BaseCustomUIPanelPlugin implements Interac
         mark();
     }
 
-    // every ability spec queues its icon at startup; the mod icon is loaded by the mod plugin
-    private static List<String> iconChoices() {
+    // only the fleet's own abilities, so the grid gives away none it lacks; every ability spec queues its icon
+    // at startup, and the mod plugin loads the mod icon
+    private List<String> iconChoices() {
         Set<String> sprites = new LinkedHashSet<>();
         sprites.add(RadialLayout.MOD_ICON);
-        for (String id : Global.getSettings().getSortedAbilityIds()) {
-            AbilitySpecAPI spec = Global.getSettings().getAbilitySpec(id);
-            if (spec != null && spec.getIconName() != null && !spec.getIconName().isEmpty()) sprites.add(spec.getIconName());
+        for (AbilityPlugin ability : abilities) {
+            String icon = ability.getSpec().getIconName();
+            if (icon != null && !icon.isEmpty()) sprites.add(icon);
         }
         return new ArrayList<>(sprites);
     }
