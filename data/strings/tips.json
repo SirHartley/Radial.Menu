@@ -1,10 +1,10 @@
 {
-	"tips":[
-		"Hold B, or either Ctrl key, on the campaign map to open the radial menu at the mouse. Point at an ability and release the key to use it.",
-		"The radial menu's hotkeys can be changed in LunaLib's mod settings, under Campaign Radial Menu. You can also set a mouse button to open it.",
-		"Hold the left mouse button on a radial menu slot for half a second to give it another ability or empty it. Slots on the main ring can also become submenus.",
-		"A radial menu submenu opens on an outer ring as soon as you point at it. Move outward to pick one of its abilities, or back to the center to close it.",
-		"Release the radial menu's hotkey in the center, or press Escape, to close it without using anything.",
-		"Rest the mouse on an ability in the radial menu to see its tooltip, and press F1 for more detail. Pausing, the slot counts and the look of the wheel are all in LunaLib's mod settings."
+	"tips": [
+		"By default, hold B or either Ctrl key to open the radial menu on the campaign map. Move the cursor toward an ability, then release the key to use it.",
+		"Change hotkeys, mouse bindings and wheel settings in LunaLib under Campaign Radial Menu.",
+		"To edit a radial menu slot, hold the left mouse button over it for half a second. Choose an ability, clear the slot, or add a submenu to the main wheel.",
+		"Hover over a submenu in the radial menu to open its outer ring. Move the cursor outward to select an ability, or back to the center to close the submenu.",
+		"To cancel a radial menu selection, move the cursor to the center before releasing the hotkey, or press Escape.",
+		"Hover over an ability in the radial menu to see its tooltip. Press F1 for additional details where available."
 	]
 }
