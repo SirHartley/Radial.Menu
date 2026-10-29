@@ -16,6 +16,7 @@ Technical routing for the current implementation. Code paths below are relative 
 | What each slot holds | `RadialLayout.load` (saved layout, else `data/config/radial_menu.json -> RadialMenuConfig.fromJSON -> RadialLayout.defaults`) `-> CampaignRadialMenu.openWheel` and `extend -> WheelEntry.of`; [Layout](#layout) |
 | Slot counts | `Setting.WHEEL_SLOTS`, `Setting.SUBMENU_SLOTS -> PlayerSettings.get -> CampaignRadialMenu.openWheel` and `extend` |
 | Submenu ring | `CampaignRadialMenu.updateExtension -> extend/retract -> RadialSelection.extend`, `childAngle`, `target` |
+| UI sounds | `CampaignRadialMenu.trackPointer` (mouse-over), `activate` (release), `edit` (edit hold) |
 | Editing a slot | `CampaignRadialMenu.trackPointer` (`EDIT_HOLD`) `-> edit -> SlotPicker.open -> RadialLayout.set` |
 | Hotkeys | `data/config/LunaSettings.csv -> config/PlayerSettings.reload -> CampaignRadialMenu.openingKeyHeld` (`Setting.HOTKEYS`); [Settings](#settings) |
 | Opening keys, Escape, cancel, release target | `CampaignRadialMenu.processCampaignInputPreCore -> RadialSelection.update -> RadialSelection.hoveredSector` |
@@ -132,6 +133,7 @@ Runtime classes are in `radialmenu/` and `radialmenu/config/`. In `radialmenu/` 
 - `updateExtension` opens a submenu as soon as `target` lands on its main tile. While one is open, the pointer inside `INNER_RADIUS` closes it, the main band (`INNER_RADIUS` to `OUTER_RADIUS`) closes it on any other main tile (opening that one if it is a submenu), and anything farther out keeps it open, so a diagonal move toward a far child tile cannot cross a neighbour's tile and close it. Past `OUTER_RADIUS`, `target` returns a child by angle or nothing outside the arc.
 - The submenu ring starts at `CHILD_INNER_RADIUS`, past a lifted main tile. When any shown main slot is a submenu, the wheel is clamped on screen by `CHILD_OUTER_RADIUS + SELECTION_LIFT` instead of the main ring's lifted radius.
 - `trackPointer` runs each input frame while the wheel is open, with a frame time from `System.nanoTime()` clamped to 0.1 s. Holding the left mouse button on any tile for `EDIT_HOLD` (0.5 s) cancels the gesture and opens `SlotPicker`; on a child tile it edits that submenu slot. Mouse events are consumed while the wheel is open, so the button is polled with `Mouse.isButtonDown(0)`.
+- Sounds follow vanilla's ability bar, whose slot is a standard button: `ui_button_mouseover` whenever the pointer reaches a new tile, disabled or not; on release `ui_button_pressed` after a successful press, unless `AbilityPlugin.hasCustomButtonPressSounds()` (the ability then plays its own on-sound, as `BaseToggleAbility` and `BaseDurationAbility` do), and `ui_button_disabled_pressed` for an unusable or empty tile. A release over Submenu, in the centre or outside the wheel is silent. Completing an edit hold plays `ui_button_pressed`. Sources: `sounds.json`, `AbilityPlugin.hasCustomButtonPressSounds` (0.98a-RC8); the ability bar slot's button setup and the standard button's mouse-enter and press handling, translated from decompiled code.
 - After an edit the gesture stays held, so the wheel reopens only on a fresh hotkey press.
 
 ### Rendering
