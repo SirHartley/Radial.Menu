@@ -23,6 +23,7 @@ Technical routing for the current implementation. Code paths below are relative 
 | What a selection does | `CampaignRadialMenu.processCampaignInputPreCore -> CampaignRadialMenu.allowed -> RadialAbility.press -> AbilityPlugin.pressButton`, for ability entries only |
 | Greyed-out or pulsing sector | `CampaignRadialMenu.available`, `RadialAbility.isAvailable` (`AbilityPlugin.isUsable`), `RadialAbility.isActive` (`AbilityPlugin.isActiveOrInProgress`) |
 | Cooldown fill | `CampaignRadialMenu.drawCooldown` (`AbilityPlugin.showCooldownIndicator`, `getCooldownFraction`) |
+| Ability tooltip | `CampaignRadialMenu.renderInUICoordsAboveUIAndTooltips -> AbilityTooltip.render -> AbilityPlugin.createTooltip` |
 | Wheel does not open or closes by itself | `CampaignRadialMenu.allowed`, called from input and from `renderInUICoordsAboveUIBelowTooltips` |
 | Tile shapes, gaps, borders, glow | `WheelRing.updateGeometry -> FeatheredSector`, drawn by `CampaignRadialMenu.drawRing` |
 | Tile background and hover light | `CampaignRadialMenu.drawRing` (`BACKGROUND_SHADE`, `BACKGROUND_TINT`, glow faders); light colour from submenu `Slot.hue`, else `CampaignRadialMenu.iconHue -> IconHue.average` |
@@ -51,7 +52,7 @@ One gesture: opening key down `-> CampaignRadialMenu.openWheel -> RadialSelectio
 `config/Setting` owns ids and defaults. `data/config/LunaSettings.csv` supplies the rows and owns the setting names and help text (`fieldName`, `fieldDescription`); it must match `Setting` on ids, types and defaults. `config/PlayerSettings` installs a `LunaSettingsListener` on application start, reloads on every LunaLib save and on game load, and caches sanitized values. Runtime callers read `PlayerSettings.get`, never LunaLib each frame.
 
 - A hotkey is a LunaLib `Keycode`: an LWJGL key code, `0` when the player clears it with Escape. `Setting.sanitize` maps a missing or out-of-range value to the default.
-- `Setting.ICONS_ONLY`, `Setting.TINTED_TILES`, `Setting.SELECT_BY_DIRECTION`, `Setting.LIFT` and `Setting.NO_ANIMATION` are LunaLib `Boolean` rows, read with `LunaSettings.getBoolean` and cached as 0 or 1; `PlayerSettings.enabled` reads them.
+- `Setting.ICONS_ONLY`, `Setting.TINTED_TILES`, `Setting.TOOLTIPS`, `Setting.SELECT_BY_DIRECTION`, `Setting.LIFT` and `Setting.NO_ANIMATION` are LunaLib `Boolean` rows, read with `LunaSettings.getBoolean` and cached as 0 or 1; `PlayerSettings.enabled` reads them.
 - The slot counts are LunaLib `Int` rows; `Setting.sanitize` clamps them to their bounds. `RadialLayout.MAIN_SLOTS` and `SUBMENU_SLOTS` are those settings' maximums, so the stored layout always covers the largest wheel.
 - `PlayerSettings.reload` reads through `LunaSettings.getInt`, which loads LunaLib's settings on first use.
 - LunaLib does not call listeners for settings saved during new-game setup (`if (!newGame) LunaSettings.reportSettingsChanged(mod)`), so `onGameLoad` reloads.
@@ -115,6 +116,7 @@ Runtime classes are in `radialmenu/` and `radialmenu/config/`. In `radialmenu/` 
 | `radialmenu/config/Setting.java` | Setting ids, types, defaults, bounds and sanitizing; `HOTKEYS` lists the keys that open the wheel |
 | `radialmenu/config/PlayerSettings.java` | LunaLib listener and the cached values |
 | `radialmenu/IconBackdrop.java` | 2x bicubic copy of an icon with radial opacity falloff, and its GL texture upload |
+| `radialmenu/AbilityTooltip.java` | The hovered ability's own tooltip in vanilla's tooltip frame, beside the wheel |
 
 ## Contracts
 
@@ -153,6 +155,16 @@ Runtime classes are in `radialmenu/` and `radialmenu/config/`. In `radialmenu/` 
 - Icons draw at their sprite's native size (vanilla ability icons are 48 units), one texel per unit, with their corner snapped to a physical pixel (`snap`), so linear filtering does not blur them. `SettingsAPI.getSprite(String)` returns a new sprite at native size on every call (decompiled `StarfarerSettings`, 0.98a-RC8), so nothing resizes the wheel's copies. `IconFade.MESH` fades the outer eighth of each side. The backdrop behind an icon does not follow its size: it is 2.5 times `BACKDROP` (44 units), or `NAMED_BACKDROP` (36) with labels.
 - Icon hue and backdrop images are read once per icon with `openStream` and `ImageIO`. An unreadable icon logs a warning and the sector falls back to `Misc.getDarkPlayerColor()` with no backdrop.
 - Backdrop textures are uploaded on first draw, on the render thread, and kept in `backdropTextures` for the listener's lifetime. They are never deleted; a new listener after each game load uploads them again.
+
+### Ability tooltip
+
+- With `Setting.TOOLTIPS` on (the default, read when the wheel opens), an ability tile hovered for `AbilityTooltip.DELAY` (0.3 s, vanilla's default tooltip delay) shows the ability's tooltip. The hover clock runs in `renderInUICoordsAboveUIBelowTooltips` and restarts on a new target or a new wheel; the tooltip is drawn in `renderInUICoordsAboveUIAndTooltips`, above everything else. Abilities the fleet lacks, `hasTooltip() == false`, Submenu and Empty show none.
+- It copies vanilla's ability bar tooltip: `ability.createTooltip(tooltip, expanded)` into a `TooltipMakerAPI` of the ability's `getTooltipWidth()`, then "Hold left-click to assign another ability" in `Misc.getGrayColor()`, 10 below (3 when a `BaseAbilityPlugin` has interrupted abilities listed), where vanilla says right-click. It is rebuilt every frame, as vanilla recreates its ability tooltips, so live values stay current. It pops in without a fade, like vanilla's.
+- The tooltip is built off the UI tree (`SettingsAPI.createCustom`, `createUIElement`, `addUIElement`) and drawn with `render(1f)` after `setLocation`; components start fully visible, so it needs no `advance`. `createUIElement` takes 10 off its width and turns the border and background off, so the width passed is `getTooltipWidth() + 10` and `AbilityTooltip.frame` draws vanilla's frame: black at 0.85 alpha, 7 units (`PAD`) around the content, and the `ui_border1b_w`/`_e` side sprites (16x8, `_top` and `_bot` caps, the middle piece tiled with `renderRegion`) at full alpha.
+- An expandable tooltip (`isTooltipExpandable()`) gets vanilla's footer box under the frame: `8 + line height` high, `max(200, label width + 30)` wide, with "Press F1 for more info" or "Press F1 to hide" in `Fonts.ORBITRON_12`, `Misc.getGrayColor()`, and F1 in `buttonShortcut`. F1 toggles `expanded` for the shown tooltip. The wheel consumes all keys, so `processCampaignInputPreCore` reads F1 itself; a player who rebinds vanilla's expand key still uses F1 here, because the binding is not in the API.
+- It sits `GAP` (10) outside the wheel's outer edge (the submenu ring's while one is shown) on the hovered tile's side, centred on the tile's middle height; it flips side when it does not fit, then is clamped on screen, leaving room for the footer below.
+
+Sources (0.98a-RC8, decompiled): the ability bar slot's `createAbilityTooltip`, `StandardTooltipV2` (`renderImpl`, `updateSize`, `makeExpandable`, `bgAlpha`), the border edge renderer, `StandardTooltipV2Expandable.createAsUIElement` and `updateSizeAsUIElement`, the custom panel's `createUIElement` and `addUIElement`, the base UI component's faders and `setTooltip` (delay), `StarfarerSettings` (0.3 s default); `settings.json` (`ui_border1b_*`, `textGrayColor`, `buttonShortcut`).
 
 ### Shared cross-file constraints
 
