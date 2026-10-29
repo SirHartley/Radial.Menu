@@ -1,5 +1,7 @@
 package radialmenu;
 
+import java.awt.Color;
+
 import com.fs.starfarer.api.Global;
 import com.fs.starfarer.api.graphics.SpriteAPI;
 import com.fs.starfarer.api.loading.AbilitySpecAPI;
@@ -18,6 +20,7 @@ final class WheelEntry {
     final Float hue;
     SpriteAPI icon;
     Float fillHue;
+    Color tint;
     LabelAPI label;
 
     private WheelEntry(Kind kind, int slot, String title, RadialAbility action, String iconName, Float hue) {

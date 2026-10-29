@@ -63,6 +63,8 @@ public final class CampaignRadialMenu implements CampaignInputListener, Campaign
     // black under the dark ui colour, so the map shows through a little, like vanilla's dimmed dialogs
     private static final float BACKGROUND_SHADE = 0.4f;
     private static final float BACKGROUND_TINT = 0.8f;
+    // share of the way from the dark ui colour to its twin in the tile's hue, for tinted tiles at rest
+    private static final float REST_TINT = 0.7f;
     // measured from a vanilla ability slot: the outer line shows the base ui colour at 70%, the inner one at 35%
     private static final float EDGE_ALPHA = 0.7f;
     private static final float INNER_EDGE_ALPHA = 0.35f;
@@ -86,6 +88,7 @@ public final class CampaignRadialMenu implements CampaignInputListener, Campaign
     private boolean animate = true;
     private boolean lift = true;
     private boolean names;
+    private boolean tinted;
 
     private Target pointer = Target.NONE;
     private float hold;
@@ -100,6 +103,7 @@ public final class CampaignRadialMenu implements CampaignInputListener, Campaign
         animate = !PlayerSettings.enabled(Setting.NO_ANIMATION);
         lift = PlayerSettings.enabled(Setting.LIFT);
         names = !PlayerSettings.enabled(Setting.ICONS_ONLY);
+        tinted = PlayerSettings.enabled(Setting.TINTED_TILES);
         selection.setDirectional(PlayerSettings.enabled(Setting.SELECT_BY_DIRECTION));
         extension.setDuration(animate ? EXTEND_IN : 0f, animate ? EXTEND_OUT : 0f);
         int count = PlayerSettings.get(Setting.WHEEL_SLOTS);
@@ -169,6 +173,7 @@ public final class CampaignRadialMenu implements CampaignInputListener, Campaign
             if (entry.iconName != null) entry.icon = Global.getSettings().getSprite(entry.iconName);
             if (entry.icon != null) entry.icon.setNormalBlend();
             entry.fillHue = entry.hue != null ? entry.hue : entry.iconName == null ? null : iconHue(entry.iconName);
+            entry.tint = entry.fillHue == null ? null : restTint(entry.fillHue);
             entry.label = names ? label(entry.title, ring, i, entry.icon != null) : null;
         }
         return ring;
@@ -209,6 +214,14 @@ public final class CampaignRadialMenu implements CampaignInputListener, Campaign
 
     static Color hueColor(float hue) {
         return Color.getHSBColor(hue, 0.55f, 1f);
+    }
+
+    // the dark ui colour turned toward the same saturation and brightness in the tile's hue
+    private static Color restTint(float hue) {
+        Color dark = Misc.getDarkPlayerColor();
+        float[] hsb = Color.RGBtoHSB(dark.getRed(), dark.getGreen(), dark.getBlue(), null);
+        Color twin = Misc.setAlpha(Color.getHSBColor(hue, hsb[1], hsb[2]), dark.getAlpha());
+        return Misc.interpolateColor(dark, twin, REST_TINT);
     }
 
     @Override
@@ -439,7 +452,9 @@ public final class CampaignRadialMenu implements CampaignInputListener, Campaign
             WheelEntry entry = ring.entries[i];
             activeColors[i] = entry.fillHue == null ? Misc.getBasePlayerColor() : hueColor(entry.fillHue);
             drawMesh(ring, i, Mesh.FILL, grow, eased[i], shade, false);
-            drawMesh(ring, i, Mesh.FILL, grow, eased[i], background, false);
+            Color tile = tinted && entry.tint != null && available(entry)
+                    ? Misc.scaleAlpha(entry.tint, BACKGROUND_TINT * grow) : background;
+            drawMesh(ring, i, Mesh.FILL, grow, eased[i], tile, false);
             if (glow[i] > 0f) {
                 // vanilla's button hover: an additive wash that whitens as it brightens
                 Color light = Misc.interpolateColor(activeColors[i], Color.white, glow[i] * 0.5f);
