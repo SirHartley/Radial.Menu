@@ -1,6 +1,6 @@
 {
 	"tips": [
-		"[Radial.Menu] By default, hold left Alt or a Ctrl key to open the radial menu on the campaign map.",
+		"[Radial.Menu] By default, hold left Alt, B or right Ctrl to open the radial menu on the campaign map.",
 		"[Radial.Menu] Change hotkeys, mouse bindings and wheel settings in the main menu LunaSettings.",
 		"[Radial.Menu] You can have up to 10 slots in the main wheel. Change the number in LunaSettings.",
 		"[Radial.Menu] To edit a radial menu slot, hold the left mouse button over it for half a second.",
