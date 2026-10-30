@@ -1,6 +1,6 @@
 "fieldID","fieldName","fieldType","defaultValue","secondaryValue","fieldDescription","minValue","maxValue","tab"
 "radial_menu_header_hotkeys","","Header","Hotkeys","","","","",""
-"radial_menu_hotkey","Hotkey","Keycode","48","","Hold to open the wheel on the campaign map. Point at an ability and release to use it. Click a keybind and press Escape to clear it.","","",""
+"radial_menu_hotkey","Hotkey","Keycode","56","","Hold to open the wheel on the campaign map. Point at an ability and release to use it. Click a keybind and press Escape to clear it.","","",""
 "radial_menu_second_hotkey","Second hotkey","Keycode","29","","An extra key for opening the wheel. Click and press Escape to leave it unbound.","","",""
 "radial_menu_third_hotkey","Third hotkey","Keycode","157","","An extra key for opening the wheel. Click and press Escape to leave it unbound.","","",""
 "radial_menu_mouse_button","Mouse button","Radio","None","None, Middle, Mouse 4, Mouse 5","Hold to open the wheel. Point at an ability and release to use it.","","",""

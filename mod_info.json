@@ -3,7 +3,7 @@
   "name": "Campaign Radial Menu",
   "author": "SirHartley & PresidentMattDamon",
   "version": "0.1.0",
-  "description": "Hold B or Ctrl (changeable in the LunaLib mod settings) in campaign for a configurable radial ability menu.",
+  "description": "Hold Alt or Ctrl (changeable in the LunaLib mod settings) in campaign for a configurable radial ability menu.",
   "gameVersion": "0.98a",
   "jars": ["jars/radialmenu.jar"],
   "modPlugin": "radialmenu.RadialMenuModPlugin",

@@ -6,7 +6,7 @@ import org.lwjgl.input.Keyboard;
 
 public enum Setting {
 
-    HOTKEY("radial_menu_hotkey", Keyboard.KEY_B),
+    HOTKEY("radial_menu_hotkey", Keyboard.KEY_LMENU),
     SECOND_HOTKEY("radial_menu_second_hotkey", Keyboard.KEY_LCONTROL),
     THIRD_HOTKEY("radial_menu_third_hotkey", Keyboard.KEY_RCONTROL),
     // luna keybinds only take keyboard keys, so a mouse button is a choice
