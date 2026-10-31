@@ -9,7 +9,7 @@ None
 
 --------------------------- Changelog -----------------------------
 
-1.0.b - UNRELEASED
+1.0.b
 Adjusted - The default hotkey is now left Alt, with B and right Ctrl as the other two defaults. Left Ctrl no longer opens the wheel by default
 Note - If you saved the mod's LunaLib settings before, your hotkeys stay as they were
 
