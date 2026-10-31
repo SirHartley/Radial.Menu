@@ -5,8 +5,8 @@
     {
         "major":1,
         "minor":0,
-        "patch":"a"
+        "patch":"b"
     },
-    "directDownloadURL":"https://github.com/SirHartley/Radial.Menu/releases/download/1.0.a/Radial.Menu-1.0.a.zip",
+    "directDownloadURL":"https://github.com/SirHartley/Radial.Menu/releases/download/1.0.b/Radial.Menu-1.0.b.zip",
     "changelogURL":"https://raw.githubusercontent.com/SirHartley/Radial.Menu/refs/heads/main/Changelog",
 }
