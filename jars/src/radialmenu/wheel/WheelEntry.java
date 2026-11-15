@@ -36,7 +36,9 @@ final class WheelEntry {
 
     static WheelEntry of(Slot slot, int index) {
         if (slot.isSubmenu()) {
-            String icon = slot.icon() != null ? slot.icon() : RadialLayout.MOD_ICON;
+            // a saved icon can name a sprite from a mod that is no longer loaded
+            String icon = slot.icon() != null && Global.getSettings().getSprite(slot.icon()).getTextureId() != 0
+                    ? slot.icon() : RadialLayout.MOD_ICON;
             return new WheelEntry(Kind.SUBMENU, index, "Submenu", null, icon, slot.hue());
         }
         AbilitySpecAPI spec = slot.abilityId() == null ? null : Global.getSettings().getAbilitySpec(slot.abilityId());

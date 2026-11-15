@@ -20,7 +20,8 @@ public enum Setting {
     PAUSE("radial_menu_pause", true),
     SELECT_BY_DIRECTION("radial_menu_select_by_direction", true),
     LIFT("radial_menu_lift", true),
-    NO_ANIMATION("radial_menu_no_animation", false);
+    NO_ANIMATION("radial_menu_no_animation", false),
+    RESET_LAYOUT("radial_menu_reset_layout", false);
 
     public enum Type { KEYCODE, INT, BOOLEAN, CHOICE }
 

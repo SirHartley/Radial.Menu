@@ -197,7 +197,6 @@ public final class CampaignRadialMenu implements CampaignInputListener, Campaign
     private WheelRing prepare(WheelRing ring) {
         for (int i = 0; i < ring.entries.length; i++) {
             WheelEntry entry = ring.entries[i];
-            // a saved submenu icon can name a sprite from a mod that is no longer loaded
             if (entry.iconName != null) entry.icon = Global.getSettings().getSprite(entry.iconName);
             if (entry.icon != null) entry.icon.setNormalBlend();
             // every icon gets its backdrop, even when a submenu's own colour replaces the icon's hue

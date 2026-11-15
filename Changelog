@@ -9,6 +9,10 @@ None
 
 --------------------------- Changelog -----------------------------
 
+1.0.c - UNRELEASED
+Added - Reset layout setting: puts the default wheel back, for switching between mod lists
+Fixed - Crash when a submenu uses an icon from a mod that is no longer enabled
+
 1.0.b
 Adjusted - The default hotkey is now left Alt, with B and right Ctrl as the other two defaults. Left Ctrl no longer opens the wheel by default
 Note - If you saved the mod's LunaLib settings before, your hotkeys stay as they were
