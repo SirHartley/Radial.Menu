@@ -10,7 +10,9 @@ None
 --------------------------- Changelog -----------------------------
 
 1.0.c - UNRELEASED
-Added - Reset layout setting: puts the default wheel back, for switching between mod lists
+Added - Reset layout setting: turn it on and save to put the default wheel back
+Note - Turn it off again before the next reset
+Adjusted - Updated to 0.98.5a
 Fixed - Crash when a submenu uses an icon from a mod that is no longer enabled
 
 1.0.b
