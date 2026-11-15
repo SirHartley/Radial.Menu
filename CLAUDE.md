@@ -11,7 +11,7 @@ Reviews, explanations, audits, and proposals are read-only unless the user reque
 ### Read the current documentation
 
 1. Read the current remote `CLAUDE.md` in full at the start of each new task. Within the same task, reuse the version already read unless the instructions change. Read new or changed instruction files before following them.
-2. Use the `starsector-knowledge` skill before answering or changing anything related to vanilla Starsector. It contains the official API, decompiled internals, and vanilla data for one exact game version (0.98a-RC8). Do not rely on memory.
+2. Use the `starsector-knowledge` skill before answering or changing anything related to vanilla Starsector. It contains the official API, decompiled internals, and vanilla data for one exact game version (0.98.5a-RC4). Do not rely on memory.
 3. Use the `patchlib` skill only when the official API cannot reach what is needed, and for any PatchLib patch, hook or redirect.
 4. If a skill is incomplete, inspect the read-only archives under `libs`. Extract them to a temporary directory, never into the repository.
    - `starfarer.api.zip` contains the official game API source; `starfarer.api.jar` is the compile jar.
