@@ -10,23 +10,34 @@ import radialmenu.RadialMenuModPlugin;
 public final class PlayerSettings implements LunaSettingsListener {
 
     private static Map<Setting, Integer> current = defaults();
+    private static Runnable resetLayout;
 
     private PlayerSettings() {
     }
 
-    public static void install() {
+    // the value read at startup is the baseline, so a reset left on does not repeat every launch
+    public static void install(Runnable onResetLayout) {
         if (!LunaSettings.hasSettingsListenerOfClass(PlayerSettings.class)) {
             LunaSettings.addSettingsListener(new PlayerSettings());
         }
-        reload();
+        current = readAll();
+        resetLayout = onResetLayout;
     }
 
+    // luna has no button field and no setter, so turning the reset toggle on is the trigger
     public static void reload() {
+        Map<Setting, Integer> values = readAll();
+        boolean reset = values.get(Setting.RESET_LAYOUT) != 0 && current.get(Setting.RESET_LAYOUT) == 0;
+        current = values;
+        if (reset) resetLayout.run();
+    }
+
+    private static Map<Setting, Integer> readAll() {
         Map<Setting, Integer> values = new EnumMap<>(Setting.class);
         for (Setting setting : Setting.values()) {
             values.put(setting, setting.sanitize(read(setting)));
         }
-        current = values;
+        return values;
     }
 
     @Override

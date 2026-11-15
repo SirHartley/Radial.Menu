@@ -67,6 +67,17 @@ public final class RadialLayout {
 
     void set(int slot, int child, Slot value) {
         main.set(slot, child < 0 ? value : main.get(slot).withChild(child, value));
+        save();
+    }
+
+    // overwrites the file instead of deleting it, writeJSONToCommon queues its writes on another thread
+    public void reset(List<String> abilityIds) {
+        main.clear();
+        main.addAll(defaults(abilityIds).main);
+        save();
+    }
+
+    private void save() {
         try {
             Global.getSettings().writeJSONToCommon(FILE, toJSON(), true);
         } catch (IOException | JSONException e) {

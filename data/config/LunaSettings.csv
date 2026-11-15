@@ -16,3 +16,5 @@
 "radial_menu_header_animation","","Header","Animation","","","","",""
 "radial_menu_lift","Expand hovered tile","Boolean","true","","Extend the tile under the cursor outward from the wheel.","","",""
 "radial_menu_no_animation","Disable animations","Boolean","false","","Make tile highlights and submenus change instantly. Active abilities glow without pulsing.","","",""
+"radial_menu_header_layout","","Header","Layout","","","","",""
+"radial_menu_reset_layout","Reset layout","Boolean","false","","Turn on and save to replace your wheel with the default layout for every campaign. Turn it off again before the next reset.","","",""
